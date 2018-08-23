@@ -1,72 +1,95 @@
 /*
- *  Copyright (c) 2015 The WebRTC project authors. All Rights Reserved.
  *
- *  Use of this source code is governed by a BSD-style license
- *  that can be found in the LICENSE file in the root of the source
- *  tree.
  */
 
 'use strict';
 
-const start_button = document.querySelector('#start');
-const initialConstraints = { audio: false, video: true };
-var assignmentConstraints = {};
-var videoInputSources = [];
-var videoCanvases = [ document.querySelector('#video1'), document.querySelector('#video2') ];
+const startVideoButton = document.querySelector('button#startVideo');
+const captureImageButton = document.querySelector('button#captureImage');
 
-start_button.onclick = function() { start_video(); };
+startVideoButton.onclick = startVideo;
+captureImageButton.onclick = captureImage;
+
+const getUserMediaConstraintsDiv = document.querySelector('div#getUserMediaConstraints');
+const localVideo = document.querySelector('div#localVideo video');
+
+let localStream;
+
+main();
+
+function main() {
+    displayGetUserMediaConstraints();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+function startVideo() {
+    startVideoButton.disabled = true;
+
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      const videoTracks = localStream.getVideoTracks();
+      for (let i = 0; i !== videoTracks.length; ++i) {
+        videoTracks[i].stop();
+      }
+    }
+
+    navigator.mediaDevices.getUserMedia(getUserMediaConstraints()).then(gotStream).catch(e => {
+            const message = `CONSOLE: GetUserMedia error: ${e.name}\nPermissionDeniedError may mean invalid constraints.`;
+            alert(message);
+            console.log(message);
+            startVideoButton.disabled = false;
+        });
+}
+
+function captureImage() {
+    ;
+}
+
+function getUserMediaConstraints() {
+    const constraints = {};
+    constraints.audio = false;
+    constraints.video = {
+        
+        width:                  {   min: 1024,  ideal: 1280,    max: 1920   },
+        height:                 {   min: 776,   ideal: 720,     max: 1080   },
+        frameRate:              {               ideal: 60                   },
+        /*
+        whiteBalanceMode:       "manual",
+        exposureMode:           "manual",
+        focusMode:              "manual",
+
+        exposureCompensation:   {   min: -3.0,                  max: 3.0    },
+        colorTemperature:       {   min: xxxx,                  max: xxxx   },
+        iso:                    {   min: 100,                   max: 1600   },
+        brightness:             {   min: xxx,                   max: xxx    },
+        contrast:               {   min: xxx,                   max: xxx    },
+        saturation:             {   min: xxx,                   max: xxx    },
+        sharpness:              {   min: xxx,                   max: xxx    },
+        focusDistance:          {   min: xxx,                   max: xxx    },
+        zoom:                   {   min: xxx,                   max: xxx    },
+        torch:                  true
+        */
+    };
+
+    return constraints;
+}
+
+function displayGetUserMediaConstraints() {
+    const constraints = getUserMediaConstraints();
+    console.log('CONSOLE: GetUserMedia constraints ->', constraints);
+    getUserMediaConstraintsDiv.textContent = JSON.stringify(constraints, null, '    ');
+}
+
+// Utility to show the value of a range in a sibling span element
+function displayRangeValue(e) {
+    const span = e.target.parentElement.querySelector('span');
+    span.textContent = e.target.value;
+    displayGetUserMediaConstraints();
+}
 
 function gotStream(stream) {
-    window.stream = stream;
-    return navigator.mediaDevices.enumerateDevices();
+    console.log('CONSOLE: GetUserMedia succeeded.');
+    localStream = stream;
+    localVideo.srcObject = stream;
 }
-
-function gotDevices(deviceList)
-{
-    for (let i = 0; i !== deviceList.length; ++i) {
-        const deviceInfo = deviceList[i];
-        if (deviceInfo.kind === 'videoinput') {
-            videoInputSources.push(deviceInfo.deviceId);
-            console.log('Video input device: ', deviceInfo);
-        } else {
-            console.log('Other device: ', deviceInfo);
-        }
-    }
-}
-
-function assignTrackToCanvas(stream)
-{
-    for (let j = 0; j !== videoCanvases.length; ++j)
-    {
-        let canvas = videoCanvases[j];
-        if (!(canvas.srcObject))
-        {
-            canvas.srcObject = stream;
-            return;
-        }
-    }
-}
-
-function start_video()
-{
-    if (window.stream) {
-        window.stream.getTracks().forEach(track => {
-            track.stop();
-        });
-    }
-
-    for (let k = 0; k !== videoInputSources.length; ++k)
-    {
-        assignmentConstraints = {
-            video: {deviceId: videoInputSources[k]}
-        };
-
-        navigator.mediaDevices.getUserMedia(assignmentConstraints).then(assignTrackToCanvas).catch(handleError);
-    }
-}
-
-function handleError(error) {
-    console.log('navigator.getUserMedia error: ', error);
-}
-
-navigator.mediaDevices.getUserMedia(initialConstraints).then(gotStream).then(gotDevices).catch(handleError);
