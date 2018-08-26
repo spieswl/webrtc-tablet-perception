@@ -28,27 +28,41 @@
 <div id="container">
 
     <h1><span>Device Camera Control Evaluation</span></h1>
-    <div>
-        <button id="startVideo">Start Video</button>
-        <button id="captureImage" disabled>Capture Image</button>
+    <div id="buttons">
+        <div id="buttonsLeft">
+            <button id="startVideo">Start Video</button>
+            <button id="captureImage" disabled>Capture Image</button>
+            <button id="stopVideo" disabled>Stop Video</button>
+        </div>
+        <div id="buttonsRight">
+            <button id="getConstraints" disabled>Get Settings</button>
+            <button id="applyConstraints" disabled>Apply Settings</button>
+        </div>
     </div>
 
-    <section id="constraints">
-        <div id="getUserMedia">
-            <h2>Video Constraints</h2>
-            <div id="getUserMediaConstraints" class="output"></div>
+    <section>
+        <div id="feedArray">
+            Camera 1 (User-Facing)
+            <br>
+            <video id="feed1" playsinline autoplay muted></video>
+            <br>
+            Frame from Camera 1
+            <canvas id="frame1"></canvas>
         </div>
-    </section>
-
-    <section id="video">
-        <div id="localVideo1">
-            <video playsinline autoplay muted></video>
-        </div>
-        <div id="localVideo2">
-            <video playsinline autoplay muted></video>
+    
+        <div id="feedArray">
+            Camera 2 (Environment-Facing)
+            <br>
+            <video id="feed2" playsinline autoplay muted></video>
+            <br>
+            Frame from Camera 2
+            <canvas id="frame2"></canvas>
         </div>
     </section>
     
+    <section>
+    </section>
+
 </div>
 
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>

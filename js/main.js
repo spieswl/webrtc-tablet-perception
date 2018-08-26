@@ -2,16 +2,25 @@
 
 const startVideoButton = document.querySelector('button#startVideo');
 const captureImageButton = document.querySelector('button#captureImage');
+const stopVideoButton = document.querySelector('button#stopVideo');
+const getConstraintsButton = document.querySelector('button#getConstraints');
+const applyConstraintsButton = document.querySelector('button#applyConstraints');
 
 startVideoButton.onclick = startVideo;
 captureImageButton.onclick = captureImage;
-
-const getUserMediaConstraintsDiv = document.querySelector('div#getUserMediaConstraints');
-const localVideo = document.querySelector('div#localVideo video');
+stopVideoButton.onclick = stopVideo;
+getConstraintsButton.onclick = displayConstraints;
+applyConstraintsButton.onclick = applyDesiredConstraints;
 
 const initConstraints = { audio: false, video: true };
+const cameraFacingOrder = [ "user", "environment" ];
+
 var videoInputSources = [];
-var videoCanvases = [ document.querySelector('#video1'), document.querySelector('#video2') ];
+var streamList = [];
+var trackList = [];
+var videoCanvases = [ document.querySelector('video#feed1'), document.querySelector('video#feed2') ];
+var imageCanvases = [ document.querySelector('canvas#frame1'), document.querySelector('canvas#frame2') ];
+var boundVideoIndex = 0;
 
 initialize();
 
@@ -19,10 +28,12 @@ initialize();
 
 function initialize()
 {
-    navigator.mediaDevices.getUserMedia(initConstraints).catch(handleGumError);
-    navigator.mediaDevices.enumerateDevices().then(populateDeviceList).catch(handleGenericError);
+    navigator.mediaDevices.getUserMedia(initConstraints).catch(handleError);
+    navigator.mediaDevices.enumerateDevices().then(populateDeviceList).catch(handleError);
     console.log(`CONSOLE : Video sources -> `, videoInputSources);
-    displayGetUserMediaConstraints();
+
+    let supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+    console.log(`CONSOLE : Supported constraints -> `, supportedConstraints)
 }
 
 function populateDeviceList(devices)
@@ -33,15 +44,7 @@ function populateDeviceList(devices)
     }
 }
 
-function displayGetUserMediaConstraints()
-{
-    const constraints = getUserMediaConstraints(0);
-
-    console.log(`CONSOLE: GetUserMedia constraints ->`, constraints);
-    getUserMediaConstraintsDiv.textContent = JSON.stringify(constraints, null, '    ');
-}
-
-function getUserMediaConstraints(counter)
+function getStreamConstraints(counter)
 {
     const constraints = {};
 
@@ -50,26 +53,11 @@ function getUserMediaConstraints(counter)
     {
         deviceId:               videoInputSources[counter],
 
-        width:                  {   min: 640,   ideal: 1280,    max: 1920   },
-        height:                 {   min: 480,   ideal: 720,     max: 1080   },
-        frameRate:              {               ideal: 60                   },
+        width:                  {   min: 320,   ideal: 1280,    max: 1920   },
+        height:                 {   min: 240,   ideal: 720,     max: 1080   },
+        frameRate:              {   min: 0,     ideal: 60,      max: 60     },
 
-        whiteBalanceMode:       "manual",
-        exposureMode:           "manual",
-        focusMode:              "manual",
-
-        exposureCompensation:   {   min: -3.0,                  max: 3.0    },
-        /*
-        colorTemperature:       {   min: xxxx,                  max: xxxx   },
-        iso:                    {   min: 100,                   max: 1600   },
-        brightness:             {   min: xxx,                   max: xxx    },
-        contrast:               {   min: xxx,                   max: xxx    },
-        saturation:             {   min: xxx,                   max: xxx    },
-        sharpness:              {   min: xxx,                   max: xxx    },
-        focusDistance:          {   min: xxx,                   max: xxx    },
-        zoom:                   {   min: xxx,                   max: xxx    },
-        */
-        torch:                  false
+        facingMode:             {   ideal: cameraFacingOrder[counter]       }
     };
 
     return constraints;
@@ -79,38 +67,68 @@ function startVideo()
 {
     startVideoButton.disabled = true;
 
+    boundVideoIndex = 0;
+    streamList = [];
+
     for (let k = 0; k !== videoInputSources.length; ++k)
     {
-        var localStream = navigator.mediaDevices.getUserMedia(getUserMediaConstraints(k)).then(gotStream).catch(handleGumError);
-
-        bindStreamToCanvas(k, localStream);
+        navigator.mediaDevices.getUserMedia(getStreamConstraints(k)).then(gotStream).then(bindStreamToCanvas).catch(handleError);
     }
+
+    captureImageButton.disabled = false;
+    stopVideoButton.disabled = false;
+    getConstraintsButton.disabled = false;
+}
+
+function stopVideo()
+{
+    captureImageButton.disabled = true;
+    stopVideoButton.disabled = true;
+    getConstraintsButton.disabled = true;
+    applyConstraintsButton.disabled = true;
+
+    for (let k = 0; k !== streamList.length; ++k)
+    {
+        streamList[k].getTracks().forEach(track => { track.stop(); });
+    }
+
+    startVideoButton.disabled = false;
 }
 
 function gotStream(stream)
 {
-    let localTracks = stream.getVideoTracks();
-    console.log(`CONSOLE: localTracks listing -> `, localTracks);
-
-    let trackConstraints = localTracks[0].getCapabilities();
-    console.log(`CONSOLE: Track constraints -> `, trackConstraints);
+    let localTrack = stream.getVideoTracks()[0];
+    console.log(`CONSOLE: Track listing -> `, localTrack);
+    
+    streamList.push(stream);
+    trackList.push(localTrack);
 
     return stream;
 }
 
-function bindStreamToCanvas(counter, stream)
+function bindStreamToCanvas(stream)
 {
-    videoCanvases[counter].srcObject = stream;
+    const track = stream.getVideoTracks()[0];
+    let feed = videoCanvases[boundVideoIndex];
+    feed.srcObject = stream;
+
+    feed.addEventListener('loadedmetadata', (e) => {  
+        window.setTimeout(() => (
+            onCapabilitiesReady(track)
+        ), 500);
+      });
+
+    boundVideoIndex++;
 }
 
-function handleGenericError(error)
-{
-    console.log(`CONSOLE: Error ->  ${error.name} : ${error.message}`);
+function onCapabilitiesReady(track) {  
+    console.log(`CONSOLE: Track capabilities -> `, track.getCapabilities());
+    console.log(`CONSOLE: Track settings -> `, track.getSettings());
 }
 
-function handleGumError(error)
+function handleError(error)
 {
-    const message = `CONSOLE: GetUserMedia Error -> ${error.name}\nPermissionDeniedError may mean invalid constraints.`;
+    const message = `CONSOLE: Error ->  ${error.name} : ${error.message}`;
 
     alert(message);
     console.log(message);
@@ -120,6 +138,23 @@ function handleGumError(error)
 ////////////////////////////////////////////////////////////////////////////////
 
 function captureImage()
+{
+    for (let k = 0; k !== streamList.length; ++k)
+    {
+        let settings = trackList[k].getSettings();
+
+        imageCanvases[k].getContext('2d').drawImage(videoCanvases[k], 0, 0, settings.width, settings.height);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+function displayConstraints()
+{
+    applyConstraintsButton.disabled = false;
+}
+
+function applyDesiredConstraints()
 {
     ;
 }
