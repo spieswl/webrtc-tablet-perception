@@ -30,7 +30,7 @@
     <h1><span>Device Camera Control Evaluation</span></h1>
     <div>
         <button id="startVideo">Start Video</button>
-        <button id="captureImage" disabled>Save Image</button>
+        <button id="captureImage" disabled>Capture Image</button>
     </div>
 
     <section id="constraints">
@@ -41,11 +41,14 @@
     </section>
 
     <section id="video">
-        <div id="localVideo">
+        <div id="localVideo1">
+            <video playsinline autoplay muted></video>
+        </div>
+        <div id="localVideo2">
             <video playsinline autoplay muted></video>
         </div>
     </section>
-
+    
 </div>
 
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
