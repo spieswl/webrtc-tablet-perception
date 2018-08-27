@@ -3,13 +3,13 @@
 const startVideoButton = document.querySelector('button#startVideo');
 const captureImageButton = document.querySelector('button#captureImage');
 const stopVideoButton = document.querySelector('button#stopVideo');
-const getConstraintsButton = document.querySelector('button#getConstraints');
+const getFeedbackButton = document.querySelector('button#getFeedback');
 const applyConstraintsButton = document.querySelector('button#applyConstraints');
 
 startVideoButton.onclick = startVideo;
 captureImageButton.onclick = captureImage;
 stopVideoButton.onclick = stopVideo;
-getConstraintsButton.onclick = displayConstraints;
+getFeedbackButton.onclick = displayFeedback;
 applyConstraintsButton.onclick = applyDesiredConstraints;
 
 const initConstraints = { audio: false, video: true };
@@ -21,6 +21,9 @@ var trackList = [];
 var videoCanvases = [ document.querySelector('video#feed1'), document.querySelector('video#feed2') ];
 var imageCanvases = [ document.querySelector('canvas#frame1'), document.querySelector('canvas#frame2') ];
 var boundVideoIndex = 0;
+
+var settingsDivs = [ document.querySelector('div#fbSettings1'), document.querySelector('div#fbSettings2') ];
+var capabilitiesDivs = [ document.querySelector('div#fbCapabilities1'), document.querySelector('div#fbCapabilities2') ];
 
 initialize();
 
@@ -77,14 +80,14 @@ function startVideo()
 
     captureImageButton.disabled = false;
     stopVideoButton.disabled = false;
-    getConstraintsButton.disabled = false;
+    getFeedbackButton.disabled = false;
 }
 
 function stopVideo()
 {
     captureImageButton.disabled = true;
     stopVideoButton.disabled = true;
-    getConstraintsButton.disabled = true;
+    getFeedbackButton.disabled = true;
     applyConstraintsButton.disabled = true;
 
     for (let k = 0; k !== streamList.length; ++k)
@@ -98,7 +101,7 @@ function stopVideo()
 function gotStream(stream)
 {
     let localTrack = stream.getVideoTracks()[0];
-    console.log(`CONSOLE: Track listing -> `, localTrack);
+    console.log(`CONSOLE: Track`, boundVideoIndex+1 ,`listing ->`, localTrack);
     
     streamList.push(stream);
     trackList.push(localTrack);
@@ -116,14 +119,14 @@ function bindStreamToCanvas(stream)
         window.setTimeout(() => (
             onCapabilitiesReady(track)
         ), 500);
-      });
+    });
 
     boundVideoIndex++;
 }
 
 function onCapabilitiesReady(track) {  
-    console.log(`CONSOLE: Track capabilities -> `, track.getCapabilities());
-    console.log(`CONSOLE: Track settings -> `, track.getSettings());
+    console.log(`CONSOLE: Track`, boundVideoIndex ,`capabilities ->`, track.getCapabilities());
+    console.log(`CONSOLE: Track`, boundVideoIndex ,`settings ->`, track.getSettings());
 }
 
 function handleError(error)
@@ -142,16 +145,24 @@ function captureImage()
     for (let k = 0; k !== streamList.length; ++k)
     {
         let settings = trackList[k].getSettings();
-
         imageCanvases[k].getContext('2d').drawImage(videoCanvases[k], 0, 0, settings.width, settings.height);
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-function displayConstraints()
+function displayFeedback()
 {
     applyConstraintsButton.disabled = false;
+
+    for (let k = 0; k !== streamList.length; ++k)
+    {
+        let settings = trackList[k].getSettings();
+        settingsDivs[k].textContent = JSON.stringify(settings, null, '    ');
+
+        let capabilities = trackList[k].getCapabilities();
+        capabilitiesDivs[k].textContent = JSON.stringify(capabilities, null, '    ');
+    }
 }
 
 function applyDesiredConstraints()

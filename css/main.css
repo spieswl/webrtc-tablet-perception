@@ -87,16 +87,23 @@ code {
     font-weight: 400;
 }
 
+div.output {
+    background-color: #eee;
+    display: inline-block;
+    font-family: 'Inconsolata', 'Courier New', monospace;
+    font-size: 0.9em;
+    position: relative;
+    top: 10px;
+    white-space: pre;
+    width: 600px;
+}
+
 div#buttons {
     display: flex;
     justify-content: space-between;
 }
 
-div#buttonsLeft {
-    display: inline-block;
-}
-
-div#buttonsRight {
+div#buttonsLeft, div#buttonsRight {
     display: inline-block;
 }
 
@@ -115,7 +122,19 @@ div#feedArray {
     max-width: 100%;
     margin: 5px;
     padding: 5px;
-    text-align: center;
+}
+
+div#feedback {
+    display: flex;
+    justify-content: space-between;
+}
+
+div#fbSettings1, div#fbSettings2, div#fbCapabilities1, div#fbCapabilities2 {
+    vertical-align: top;
+    margin: 0 0 2em 0;
+    padding: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 h1 {
@@ -139,9 +158,6 @@ h1 span {
 h2 {
     color: #404040;
     font-weight: 500;
-    line-height: 1.2em;
-    margin: 0 0 0.8em 0;
-    padding: 0 0 0.2em 0;
 }
 
 h3 {
