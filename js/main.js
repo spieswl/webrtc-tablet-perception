@@ -1,13 +1,15 @@
 'use strict';
 
 const startVideoButton = document.querySelector('button#startVideo');
-const captureImageButton = document.querySelector('button#captureImage');
+const saveImage1Button = document.querySelector('button#saveImage1');
+const saveImage2Button = document.querySelector('button#saveImage2');
 const stopVideoButton = document.querySelector('button#stopVideo');
 const getFeedbackButton = document.querySelector('button#getFeedback');
 const applyConstraintsButton = document.querySelector('button#applyConstraints');
 
 startVideoButton.onclick = startVideo;
-captureImageButton.onclick = captureImage;
+saveImage1Button.onclick = saveImage1;
+saveImage2Button.onclick = saveImage2;
 stopVideoButton.onclick = stopVideo;
 getFeedbackButton.onclick = displayFeedback;
 applyConstraintsButton.onclick = applyDesiredConstraints;
@@ -19,13 +21,20 @@ var videoInputSources = [];
 var streamList = [];
 var trackList = [];
 var videoCanvases = [ document.querySelector('video#feed1'), document.querySelector('video#feed2') ];
-var imageCanvases = [ document.querySelector('canvas#frame1'), document.querySelector('canvas#frame2') ];
 var boundVideoIndex = 0;
+
+var img1Canvas = document.createElement('canvas');
+var img1Link = document.createElement('a');
+var img2Canvas = document.createElement('canvas');
+var img2Link = document.createElement('a');
+
 
 var settingsDivs = [ document.querySelector('div#fbSettings1'), document.querySelector('div#fbSettings2') ];
 var capabilitiesDivs = [ document.querySelector('div#fbCapabilities1'), document.querySelector('div#fbCapabilities2') ];
 
+
 initialize();
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -72,20 +81,23 @@ function startVideo()
 
     boundVideoIndex = 0;
     streamList = [];
+    trackList = [];
 
     for (let k = 0; k !== videoInputSources.length; ++k)
     {
         navigator.mediaDevices.getUserMedia(getStreamConstraints(k)).then(gotStream).then(bindStreamToCanvas).catch(handleError);
     }
-
-    captureImageButton.disabled = false;
+    
+    saveImage1Button.disabled = false;
+    saveImage2Button.disabled = false;
     stopVideoButton.disabled = false;
     getFeedbackButton.disabled = false;
 }
 
 function stopVideo()
 {
-    captureImageButton.disabled = true;
+    saveImage1Button.disabled = true;
+    saveImage2Button.disabled = true;
     stopVideoButton.disabled = true;
     getFeedbackButton.disabled = true;
     applyConstraintsButton.disabled = true;
@@ -140,13 +152,34 @@ function handleError(error)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-function captureImage()
+function saveImage1()
 {
-    for (let k = 0; k !== streamList.length; ++k)
-    {
-        let settings = trackList[k].getSettings();
-        imageCanvases[k].getContext('2d').drawImage(videoCanvases[k], 0, 0, settings.width, settings.height);
-    }
+    var settings = trackList[0].getSettings();
+
+    img1Canvas.setAttribute("height", settings.height);
+    img1Canvas.setAttribute("width", settings.width);
+    img1Canvas.getContext('2d').drawImage(videoCanvases[0], 0, 0, settings.width, settings.height);
+
+    let dataURL1 = img1Canvas.toDataURL('image/png').replace("image/png", "image/octet-stream");
+    
+    img1Link.href = dataURL1;
+    img1Link.download = "cam1_image.png";
+    img1Link.click();
+}
+
+function saveImage2()
+{
+    var settings = trackList[1].getSettings();
+
+    img2Canvas.setAttribute("height", settings.height);
+    img2Canvas.setAttribute("width", settings.width);
+    img2Canvas.getContext('2d').drawImage(videoCanvases[1], 0, 0, settings.width, settings.height);
+
+    var dataURL2 = img2Canvas.toDataURL('image/png').replace("image/png", "image/octet-stream");
+
+    img2Link.href = dataURL2;
+    img2Link.download = "cam2_image.png";
+    img2Link.click();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -28,10 +28,15 @@
 <div id="container">
 
     <h1><span>Device Camera Control Evaluation</span></h1>
+    <p>
+        This evaluation only supports the saving of images from the first two cameras used, although the code can be scaled up to incorporate video feeds from far more sources.
+    </p>
+
     <div id="buttons">
         <div id="buttonsLeft">
             <button id="startVideo">Start Video</button>
-            <button id="captureImage" disabled>Capture Image</button>
+            <button id="saveImage1" disabled>Save Image 1</button>
+            <button id="saveImage2" disabled>Save Image 2</button>
             <button id="stopVideo" disabled>Stop Video</button>
         </div>
         <div id="buttonsRight">
@@ -44,15 +49,11 @@
         <div id="feedArray" style="text-align: center;">
             Camera 1 (User-Facing)<br>
             <video id="feed1" playsinline autoplay muted></video><br>
-            Frame from Camera 1
-            <canvas id="frame1"></canvas>
         </div>
     
         <div id="feedArray" style="text-align: center;">
             Camera 2 (Environment-Facing)<br>
             <video id="feed2" playsinline autoplay muted></video><br>
-            Frame from Camera 2
-            <canvas id="frame2"></canvas>
         </div>
     </section>
     
