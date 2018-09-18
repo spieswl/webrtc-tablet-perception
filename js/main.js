@@ -8,8 +8,8 @@ const getFeedbackButton = document.querySelector('button#getFeedback');
 const applyConstraintsButton = document.querySelector('button#applyConstraints');
 
 startVideoButton.onclick = startVideo;
-saveImage1Button.onclick = saveImage1;
-saveImage2Button.onclick = saveImage2;
+saveImage1Button.onclick = function () { saveImage(0); };
+saveImage2Button.onclick = function () { saveImage(1); };
 stopVideoButton.onclick = stopVideo;
 getFeedbackButton.onclick = displayFeedback;
 applyConstraintsButton.onclick = applyDesiredConstraints;
@@ -20,14 +20,10 @@ const cameraFacingOrder = [ "user", "environment" ];
 var videoInputSources = [];
 var streamList = [];
 var trackList = [];
-var videoCanvases = [ document.querySelector('video#feed1'), document.querySelector('video#feed2') ];
+var videoCanvas = [ document.querySelector('video#feed1'), document.querySelector('video#feed2') ];
+var imgCanvas = [ document.createElement('canvas'), document.createElement('canvas') ];                 // Blank canvases for saving images from the video feed
+var imgLink = [ document.createElement('a'), document.createElement('a') ];                             // Empty links to generate download capabilities
 var boundVideoIndex = 0;
-
-var img1Canvas = document.createElement('canvas');
-var img1Link = document.createElement('a');
-var img2Canvas = document.createElement('canvas');
-var img2Link = document.createElement('a');
-
 
 var settingsDivs = [ document.querySelector('div#fbSettings1'), document.querySelector('div#fbSettings2') ];
 var capabilitiesDivs = [ document.querySelector('div#fbCapabilities1'), document.querySelector('div#fbCapabilities2') ];
@@ -124,7 +120,7 @@ function gotStream(stream)
 function bindStreamToCanvas(stream)
 {
     const track = stream.getVideoTracks()[0];
-    let feed = videoCanvases[boundVideoIndex];
+    let feed = videoCanvas[boundVideoIndex];
     feed.srcObject = stream;
 
     feed.addEventListener('loadedmetadata', (e) => {  
@@ -152,34 +148,19 @@ function handleError(error)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-function saveImage1()
+function saveImage(value)
 {
-    var settings = trackList[0].getSettings();
+    var settings = trackList[value].getSettings();
 
-    img1Canvas.setAttribute("height", settings.height);
-    img1Canvas.setAttribute("width", settings.width);
-    img1Canvas.getContext('2d').drawImage(videoCanvases[0], 0, 0, settings.width, settings.height);
+    imgCanvas[value].setAttribute("height", settings.height);
+    imgCanvas[value].setAttribute("width", settings.width);
+    imgCanvas[value].getContext('2d').drawImage(videoCanvas[value], 0, 0, settings.width, settings.height);
 
-    let dataURL1 = img1Canvas.toDataURL('image/png').replace("image/png", "image/octet-stream");
+    let dataURL = imgCanvas[value].toDataURL('image/png').replace("image/png", "image/octet-stream");
     
-    img1Link.href = dataURL1;
-    img1Link.download = "cam1_image.png";
-    img1Link.click();
-}
-
-function saveImage2()
-{
-    var settings = trackList[1].getSettings();
-
-    img2Canvas.setAttribute("height", settings.height);
-    img2Canvas.setAttribute("width", settings.width);
-    img2Canvas.getContext('2d').drawImage(videoCanvases[1], 0, 0, settings.width, settings.height);
-
-    var dataURL2 = img2Canvas.toDataURL('image/png').replace("image/png", "image/octet-stream");
-
-    img2Link.href = dataURL2;
-    img2Link.download = "cam2_image.png";
-    img2Link.click();
+    imgLink[value].href = dataURL;
+    imgLink[value].download = "cam" + String(value) + "_image.png";
+    imgLink[value].click();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
