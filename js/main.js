@@ -24,7 +24,7 @@ var trackList = [];
 var videoCanvas = [ document.querySelector('video#feed1'), document.querySelector('video#feed2') ];
 var imgCanvas = [ document.createElement('canvas'), document.createElement('canvas') ];                 // Blank canvases for saving images from the video feed
 var imgLink = [ document.createElement('a'), document.createElement('a') ];                             // Empty links to generate download capabilities
-var incoming = document.getElementById('incoming');
+var incomingImgs = document.getElementById('incomingImages');
 
 var settingsDivs = [ document.querySelector('div#fbSettings1'), document.querySelector('div#fbSettings2') ];
 var capabilitiesDivs = [ document.querySelector('div#fbCapabilities1'), document.querySelector('div#fbCapabilities2') ];
@@ -41,26 +41,17 @@ if (!room) {
     room = window.location.hash = randomToken();
 }
 
-// Initial gUM scan
-navigator.mediaDevices.getUserMedia(initConstraints).catch(handleError);
-navigator.mediaDevices.enumerateDevices().then(populateDeviceList).catch(handleError);
-console.log(`CONSOLE : Video sources -> `, videoInputSources);
-
-let supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-console.log(`CONSOLE : Supported constraints -> `, supportedConstraints)
+initialize();
 
 //////////////////////////// SIGNALING & NETWORKING ////////////////////////////
+
+// Connect to the signaling server
+var socket = io.connect();
 
 var configuration = null;
 var isInitiator;
 var peerConn;
 var dataChannel;
-
-// Connect to the signaling server
-var socket = io.connect();
-
-// Joining a room.
-socket.emit('create or join', room);
 
 socket.on('ipaddr', function(ipaddr)
 {
@@ -71,7 +62,6 @@ socket.on('created', function(room, clientId)
 {
     console.log('CONSOLE: Created room -> ', room, ' | Client ID -> ', clientId);
     isInitiator = true;
-    startVideo();
 });
   
 socket.on('joined', function(room, clientId)
@@ -79,7 +69,6 @@ socket.on('joined', function(room, clientId)
     console.log('CONSOLE: This peer has joined room', room, 'with client ID', clientId);
     isInitiator = false;
     createPeerConnection(isInitiator, configuration);
-    startVideo();
 });
   
 socket.on('full', function(room)
@@ -109,15 +98,11 @@ socket.on('message', function(message)
 socket.on('disconnect', function(reason)
 {
     console.log(`CONSOLE: Disconnected -> ${reason}.`);
-    sendImage1Button.disabled = true;
-    sendImage2Button.disabled = true;
 });
 
 socket.on('bye', function(room)
 {
     console.log(`CONSOLE: Peer leaving room ${room}.`);
-    sendImage1Button.disabled = true;
-    sendImage2Button.disabled = true;
 
     // If peer did not create the room, re-enter to be creator.
     if (!isInitiator) {
@@ -178,7 +163,7 @@ function createPeerConnection(isInitiator, config)
     if (isInitiator)
     {
         console.log('CONSOLE: Creating Data channel.');
-        dataChannel = peerConn.createDataChannel('photos');
+        dataChannel = peerConn.createDataChannel('images');
         onDataChannelCreated(dataChannel);
       
         console.log('CONSOLE: Creating an offer.');
@@ -212,15 +197,11 @@ function onDataChannelCreated(channel)
     channel.onopen = function()
     {
         console.log('CONSOLE: Data channel opened!');
-        sendImage1Button.disabled = false;
-        sendImage2Button.disabled = false;
     };
   
     channel.onclose = function ()
     {
         console.log('CONSOLE: Data channel closed!');
-        sendImage1Button.disabled = true;
-        sendImage2Button.disabled = true;
     }
 
     channel.onmessage = (adapter.browserDetails.browser === 'firefox') ? receiveDataFirefoxFactory() : receiveDataChromeFactory();
@@ -248,7 +229,7 @@ function receiveDataChromeFactory()
   
         if (count === buf.byteLength)
         {
-            console.log('CONSOLE: Done. Rendering photo.');
+            console.log('CONSOLE: Done. Rendering image.');
             renderIncomingPhoto(buf);
         }
     };
@@ -285,7 +266,7 @@ function receiveDataFirefoxFactory()
                     buf.set(new Uint8ClampedArray(this.result), pos);
                     if (i + 1 === parts.length)
                     {
-                        console.log('CONSOLE: Done. Rendering photo.');
+                        console.log('CONSOLE: Done. Rendering image.');
                         renderIncomingPhoto(buf);
                     }
                     else
@@ -311,7 +292,21 @@ window.addEventListener('unload', function()
     socket.emit('bye', room);
 });
 
+// Joining a room.
+socket.emit('create or join', room);
+
 ////////////////////////////////////////////////////////////////////////////////
+
+function initialize()
+{
+    // Initial gUM scan
+    navigator.mediaDevices.getUserMedia(initConstraints).catch(handleError);
+    navigator.mediaDevices.enumerateDevices().then(populateDeviceList).catch(handleError);
+    console.log(`CONSOLE : Video sources -> `, videoInputSources);
+
+    let supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+    console.log(`CONSOLE : Supported constraints -> `, supportedConstraints)
+}
 
 function populateDeviceList(devices)
 {
@@ -357,24 +352,16 @@ function bindStreamToCanvas(stream)
     let feed = videoCanvas[boundVideoIndex];
     feed.srcObject = stream;
 
-    feed.addEventListener('loadedmetadata', (e) => {  
-        window.setTimeout(() => (
-            onCapabilitiesReady(track)
-        ), 500);
-    });
-
-    feed.onloadedmetadata = function() {
+    feed.onloadedmetadata = function()
+    {
         imgContextW = feed.videoWidth;
         imgContextH = feed.videoHeight;
         console.log('CONSOLE: gotStream with width and height -> ', imgContextW, imgContextH);
+        console.log(`CONSOLE: Track`, boundVideoIndex ,`capabilities ->`, track.getCapabilities());
+        console.log(`CONSOLE: Track`, boundVideoIndex ,`settings ->`, track.getSettings());
     };
 
     boundVideoIndex++;
-}
-
-function onCapabilitiesReady(track) {  
-    console.log(`CONSOLE: Track`, boundVideoIndex ,`capabilities ->`, track.getCapabilities());
-    console.log(`CONSOLE: Track`, boundVideoIndex ,`settings ->`, track.getSettings());
 }
 
 function startVideo()
@@ -482,8 +469,8 @@ function renderIncomingPhoto(data)
     var canvas = document.createElement('canvas');
     canvas.width = imgContextW;
     canvas.height = imgContextH;
-    canvas.classList.add('incomingPhoto');
-    incoming.insertBefore(canvas, incoming.firstChild);
+    canvas.classList.add('incomingImages');
+    incomingImgs.insertBefore(canvas, incomingImgs.firstChild);
   
     var context = canvas.getContext('2d');
     var img = context.createImageData(imgContextW, imgContextH);
