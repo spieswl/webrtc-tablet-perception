@@ -30,6 +30,8 @@
     <h1><span>Device Camera Control Evaluation</span></h1>
     <p>
         This evaluation only supports the saving of images from the first two cameras used, although the code could be scaled up to incorporate video feeds from many more sources.
+
+        Note that the video will be forced to capture at 640x480 for this demo.
     </p>
 
     <div id="buttons">
@@ -37,6 +39,8 @@
             <button id="startVideo">Start Video</button>
             <button id="saveImage1" disabled>Save Image 1</button>
             <button id="saveImage2" disabled>Save Image 2</button>
+            <button id="sendImage1" disabled>Send Image 1</button>
+            <button id="sendImage2" disabled>Send Image 2</button>
             <button id="stopVideo" disabled>Stop Video</button>
         </div>
         <div id="buttonsRight">
@@ -76,8 +80,14 @@
         </div>
     </section>
 
+    <section>
+        <h2>Incoming photos</h2>
+        <div id="incoming"></div>
+    </section>
+
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 <script src="js/main.js" async></script>
 
