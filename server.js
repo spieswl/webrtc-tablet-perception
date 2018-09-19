@@ -13,6 +13,14 @@ const app = http.createServer(function (req, res)
 var io = require('socket.io').listen(app);
 io.sockets.on('connection', function(socket)
 {
+    // convenience function to log server messages on the client
+    function log()
+    {
+        var array = ['Message from server:'];
+        array.push.apply(array, arguments);
+        socket.emit('log', array);
+    }
+
     socket.on('message', function(message) {
         log('Client said: ', message);
         // for a real app, would be room-only (not broadcast)
