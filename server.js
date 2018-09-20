@@ -1,16 +1,32 @@
 'use strict';
 
 const os = require('os');
+const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const nodeStatic = require('node-static');
 const fileServer = new(nodeStatic.Server)();
 
-const app = http.createServer(function (req, res)
+var options = {
+    key: fs.readFileSync('certs/privateKey.key'),
+    cert: fs.readFileSync('certs/certificate.crt')
+};
+
+// HTTPS
+const https_app = https.createServer(options, function (req, res)
 {
     fileServer.serve(req, res);
-}).listen(8080);
+}).listen(443);
 
-var io = require('socket.io').listen(app);
+// HTTP redirect
+const http_redir = http.createServer(function (req, res)
+{
+    res.writeHead(301, { "Location": "https://" + req.headers['host'] + req.url });
+    res.end();
+}).listen(80);
+
+// Socket.IO
+var io = require('socket.io').listen(https_app);
 io.sockets.on('connection', function(socket)
 {
     // convenience function to log server messages on the client
@@ -79,3 +95,7 @@ io.sockets.on('connection', function(socket)
         console.log(`Peer said bye on room ${room}.`);
     });
 })
+
+// Misc
+console.log("HTTP redirecting to HTTPS on port 443...");
+console.log("WebRTC Page is up!");

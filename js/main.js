@@ -8,6 +8,7 @@ const sendImage2Button = document.querySelector('button#sendImage2');
 const stopVideoButton = document.querySelector('button#stopVideo');
 const getFeedbackButton = document.querySelector('button#getFeedback');
 const applyConstraintsButton = document.querySelector('button#applyConstraints');
+const showPatternButton = document.querySelector('button#showPattern');
 
 startVideoButton.onclick = startVideo;
 saveImage1Button.onclick = function () { saveImage(0); };
@@ -17,6 +18,7 @@ sendImage2Button.onclick = function () { sendImage(1); };
 stopVideoButton.onclick = stopVideo;
 getFeedbackButton.onclick = displayFeedback;
 applyConstraintsButton.onclick = applyDesiredConstraints;
+showPatternButton.onclick = showPattern;
 
 var videoInputSources = [];
 var streamList = [];
@@ -462,6 +464,11 @@ function sendImage(value)
         console.log('CONSOLE: Last ' + len % CHUNK_LEN + ' byte(s).');
         dataChannel.send(img.data.subarray(n * CHUNK_LEN));
     }
+}
+
+function showPattern()
+{
+    ;
 }
 
 function renderIncomingPhoto(data)

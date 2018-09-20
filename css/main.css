@@ -19,7 +19,6 @@ body {
     font-weight: 300;
 }
 
-
 audio {
     max-width: 100%;
 }
@@ -43,6 +42,10 @@ button {
     width: 130px;
     margin: 0 0 1em 0;
     padding: 0.5em 0.7em 0.6em 0.7em;
+}
+
+button#showPattern {
+    background-color: #407bfa;
 }
 
 button:active {
@@ -114,6 +117,13 @@ div#fbSettings1, div#fbSettings2, div#fbCapabilities1, div#fbCapabilities2 {
     padding: 5px;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+div#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: url('images/sin-pattern_2048x2048.png');
 }
 
 h1 {
