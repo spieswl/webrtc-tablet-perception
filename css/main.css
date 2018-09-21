@@ -119,13 +119,6 @@ div#fbSettings1, div#fbSettings2, div#fbCapabilities1, div#fbCapabilities2 {
     text-overflow: ellipsis;
 }
 
-div#overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    background: url('images/sin-pattern_2048x2048.png');
-}
-
 h1 {
     border-bottom: 1px solid #c0c0c0;
     font-family: 'Roboto', sans-serif;

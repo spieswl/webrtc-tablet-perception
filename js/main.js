@@ -23,10 +23,11 @@ showPatternButton.onclick = showPattern;
 var videoInputSources = [];
 var streamList = [];
 var trackList = [];
-var videoCanvas = [ document.querySelector('video#feed1'), document.querySelector('video#feed2') ];
+var videoCanvas = [ document.querySelector('video#outFeed1'), document.querySelector('video#outFeed2') ];
 var imgCanvas = [ document.createElement('canvas'), document.createElement('canvas') ];                 // Blank canvases for saving images from the video feed
 var imgLink = [ document.createElement('a'), document.createElement('a') ];                             // Empty links to generate download capabilities
 var incomingImgs = document.getElementById('incomingImages');
+var overlayDivs = [];
 
 var settingsDivs = [ document.querySelector('div#fbSettings1'), document.querySelector('div#fbSettings2') ];
 var capabilitiesDivs = [ document.querySelector('div#fbCapabilities1'), document.querySelector('div#fbCapabilities2') ];
@@ -468,7 +469,31 @@ function sendImage(value)
 
 function showPattern()
 {
-    ;
+    var pattern = document.createElement('img');
+    pattern.setAttribute('src', 'images/sin-pattern_2048x2048.png');
+    pattern.style.cssText = 'max-width: none;'
+    pattern.addEventListener("click", function()
+    {
+        console.log("TESTING");
+        var closer = document.querySelector("div#overlay");
+        closer.parentNode.removeChild(closer);
+        
+        if (document.cancelFullScreen)              { document.cancelFullScreen(); }
+        else if (document.msCancelFullScreen)       { document.msCancelFullScreen(); }
+        else if (document.mozCancelFullScreen)      { document.mozCancelFullScreen(); }
+        else if (document.webkitCancelFullScreen)   { document.webkitCancelFullScreen(); }
+    });
+
+    var overlay = document.createElement('div');
+    overlay.setAttribute("id", "overlay");
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; height: 100%; width: 100%; z-index:100;';
+    overlay.appendChild(pattern);
+
+    document.body.appendChild(overlay);
+
+    if (document.documentElement.requestFullScreen)                 { document.documentElement.requestFullScreen(); }
+    else if (document.documentElement.mozRequestFullScreen)         { document.documentElement.mozRequestFullScreen(); }
+    else if (document.documentElement.webkitRequestFullScreen)      { document.documentElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT); }
 }
 
 function renderIncomingPhoto(data)
