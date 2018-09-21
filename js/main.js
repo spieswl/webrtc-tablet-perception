@@ -1,6 +1,8 @@
 'use strict';
 
+// Button elements
 const startVideoButton = document.querySelector('button#startVideo');
+const connectButton = document.querySelector('button#connect');
 const saveImage1Button = document.querySelector('button#saveImage1');
 const saveImage2Button = document.querySelector('button#saveImage2');
 const sendImage1Button = document.querySelector('button#sendImage1');
@@ -11,21 +13,24 @@ const applyConstraintsButton = document.querySelector('button#applyConstraints')
 const showPatternButton = document.querySelector('button#showPattern');
 
 startVideoButton.onclick = startVideo;
+connectButton.onclick = connect;
 saveImage1Button.onclick = function () { saveImage(0); };
 saveImage2Button.onclick = function () { saveImage(1); };
 sendImage1Button.onclick = function () { sendImage(0); };
 sendImage2Button.onclick = function () { sendImage(1); };
 stopVideoButton.onclick = stopVideo;
-getFeedbackButton.onclick = displayFeedback;
+getFeedbackButton.onclick = getFeedback;
 applyConstraintsButton.onclick = applyDesiredConstraints;
 showPatternButton.onclick = showPattern;
 
+// WebRTC features & elements
 var videoInputSources = [];
 var streamList = [];
 var trackList = [];
-var videoCanvas = [ document.querySelector('video#outFeed1'), document.querySelector('video#outFeed2') ];
-var imgCanvas = [ document.createElement('canvas'), document.createElement('canvas') ];                 // Blank canvases for saving images from the video feed
-var imgLink = [ document.createElement('a'), document.createElement('a') ];                             // Empty links to generate download capabilities
+var localVideoCanvas = [ document.querySelector('video#outFeed1'), document.querySelector('video#outFeed2') ];
+var remoteVideoCanvas = [ document.querySelector('video#inFeed1'), document.querySelector('video#inFeed2') ];
+var imgCanvas = [ document.createElement('canvas'), document.createElement('canvas') ];
+var imgLink = [ document.createElement('a'), document.createElement('a') ];
 var incomingImgs = document.getElementById('incomingImages');
 var overlayDivs = [];
 
@@ -38,110 +43,36 @@ var imgContextW;
 var imgContextH;
 var boundVideoIndex = 0;
 
-// Create a random room if not already present in the URL.
-var room = window.location.hash.substring(1);
-if (!room) {
-    room = window.location.hash = randomToken();
-}
-
-initialize();
-
-//////////////////////////// SIGNALING & NETWORKING ////////////////////////////
-
-// Connect to the signaling server
-var socket = io.connect();
-
+// Networking elements
 var configuration = null;
 var isInitiator;
 var peerConn;
 var dataChannel;
 
-socket.on('ipaddr', function(ipaddr)
+// Create a random room if not already present in the URL.
+var room = window.location.hash.substring(1);
+if (!room)
 {
-    console.log('CONSOLE: Server IP address -> ' + ipaddr);
-});
-
-socket.on('created', function(room, clientId)
-{
-    console.log('CONSOLE: Created room -> ', room, ' | Client ID -> ', clientId);
-    isInitiator = true;
-});
-  
-socket.on('joined', function(room, clientId)
-{
-    console.log('CONSOLE: This peer has joined room', room, 'with client ID', clientId);
-    isInitiator = false;
-    createPeerConnection(isInitiator, configuration);
-});
-  
-socket.on('full', function(room)
-{
-    alert('CONSOLE: Room ' + room + ' is full. We will create a new room for you.');
-    window.location.hash = '';
-    window.location.reload();
-});
-  
-socket.on('ready', function()
-{
-    console.log('CONSOLE: Socket is ready.');
-    createPeerConnection(isInitiator, configuration);
-});
-
-socket.on('log', function(array)
-{
-    console.log.apply(console, array);
-});
-
-socket.on('message', function(message)
-{
-    console.log('CONSOLE: Client received message -> ', message);
-    signalingMessageCallback(message);
-});
-
-socket.on('disconnect', function(reason)
-{
-    console.log(`CONSOLE: Disconnected -> ${reason}.`);
-});
-
-socket.on('bye', function(room)
-{
-    console.log(`CONSOLE: Peer leaving room ${room}.`);
-
-    // If peer did not create the room, re-enter to be creator.
-    if (!isInitiator) {
-        window.location.reload();
-    }
-});
-  
-function sendMessage(message)
-{
-    console.log('CONSOLE: Client sending message -> ', message);
-    socket.emit('message', message);
+    room = window.location.hash = randomToken();
 }
 
-function signalingMessageCallback(message)
+/////////////////////////////// WEBRTC FUNCTIONS ///////////////////////////////
+
+function connect()
 {
-    if (message.type === 'offer')
-    {
-        console.log('CONSOLE: Got offer. Sending answer to peer.');
-        peerConn.setRemoteDescription(new RTCSessionDescription(message), function() {}, logError);
-        peerConn.createAnswer(onLocalSessionCreated, logError);
-    }
-    else if (message.type === 'answer')
-    {
-        console.log('CONSOLE: Got answer.');
-        peerConn.setRemoteDescription(new RTCSessionDescription(message), function() {}, logError);
-    }
-    else if (message.type === 'candidate')
-    {
-        peerConn.addIceCandidate(new RTCIceCandidate({ candidate: message.candidate }));
-    }
+    connectButton.disabled = true;
+    createPeerConnection(isInitiator, configuration);
 }
 
 function createPeerConnection(isInitiator, config)
 {
     console.log('CONSOLE: Creating Peer connection as initiator?', isInitiator, 'config:', config);
     peerConn = new RTCPeerConnection(config);
+
+    for (let k = 0; k !== streamList.length; ++k)
+    {
+        peerConn.addTrack(trackList[k], streamList[k]);
+    }
 
     // Send any ICE candidates to the other peer
     peerConn.onicecandidate = function(event)
@@ -181,21 +112,40 @@ function createPeerConnection(isInitiator, config)
             onDataChannelCreated(dataChannel);
         };
     }
+
+    peerConn.onnegotiationneeded = function()
+    {
+        console.log('CONSOLE: Negotiation needed - peerConn');
+        
+    };
+
+    peerConn.ontrack = function(event)
+    {
+        if(!remoteVideoCanvas[0].srcObject)
+        {
+            remoteVideoCanvas[0].srcObject = event.streams[0];
+        }
+        else if (!remoteVideoCanvas[1].srcObject)
+        {
+            remoteVideoCanvas[1].srcObject = event.streams[0];
+        }
+        else return;
+    };
 }
 
 function onLocalSessionCreated(desc)
 {
-    console.log('CONSOLE:  Local session created:', desc);
+    console.log('CONSOLE: Local session created:', desc);
     peerConn.setLocalDescription(desc, function()
     {
-        console.log('CONSOLE:  Sending local desc:', peerConn.localDescription);
+        console.log('CONSOLE: Sending local desc:', peerConn.localDescription);
         sendMessage(peerConn.localDescription);
     }, logError);
 }
 
 function onDataChannelCreated(channel)
 {
-    console.log('CONSOLE: onDataChannelCreated -> ', channel);
+    console.log('CONSOLE: OnDataChannelCreated -> ', channel);
 
     channel.onopen = function()
     {
@@ -284,32 +234,102 @@ function receiveDataFirefoxFactory()
     };
 }
 
-if (location.hostname.match(/localhost|127\.0\.0/))
-{
-    socket.emit('ipaddr');
-}
+////////////////////////////// SOCKET.IO SIGNALS ///////////////////////////////
 
-window.addEventListener('unload', function()
+// Connect to the signaling server
+var socket = io.connect();
+
+socket.on('ipaddr', function(ipaddr)
 {
-    console.log(`CONSOLE: Unloading window. Notifying peers in ${room}.`);
-    socket.emit('bye', room);
+    console.log('CONSOLE: Server IP address -> ' + ipaddr);
 });
 
-// Joining a room.
-socket.emit('create or join', room);
-
-////////////////////////////////////////////////////////////////////////////////
-
-function initialize()
+socket.on('created', function(room, clientId)
 {
-    // Initial gUM scan
-    navigator.mediaDevices.getUserMedia(initConstraints).catch(handleError);
-    navigator.mediaDevices.enumerateDevices().then(populateDeviceList).catch(handleError);
-    console.log(`CONSOLE : Video sources -> `, videoInputSources);
+    console.log('CONSOLE: Created room -> ', room, ' | Client ID -> ', clientId);
+    isInitiator = true;
+});
+  
+socket.on('joined', function(room, clientId)
+{
+    console.log('CONSOLE: This peer has joined room', room, 'with client ID', clientId);
+    isInitiator = false;
+});
+  
+socket.on('full', function(room)
+{
+    alert('CONSOLE: Room ' + room + ' is full. We will create a new room for you.');
+    window.location.hash = '';
+    window.location.reload();
+});
+  
+socket.on('ready', function()
+{
+    console.log('CONSOLE: Socket is ready.');
+    connectButton.disabled = false;
+});
 
-    let supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-    console.log(`CONSOLE : Supported constraints -> `, supportedConstraints)
+socket.on('log', function(array)
+{
+    console.log.apply(console, array);
+});
+
+socket.on('message', function(message)
+{
+    console.log('CONSOLE: Client received message -> ', message);
+    signalingMessageCallback(message);
+});
+
+socket.on('disconnect', function(reason)
+{
+    console.log(`CONSOLE: Disconnected -> ${reason}.`);
+    connectButton.disabled = false;
+});
+
+socket.on('bye', function(room)
+{
+    console.log(`CONSOLE: Peer leaving room ${room}.`);
+
+    // If peer did not create the room, re-enter to be creator.
+    if (!isInitiator) {
+        window.location.reload();
+    }
+});
+  
+function sendMessage(message)
+{
+    console.log('CONSOLE: Client sending message -> ', message);
+    socket.emit('message', message);
 }
+
+function signalingMessageCallback(message)
+{
+    if (message.type === 'offer')
+    {
+        console.log('CONSOLE: Got offer. Sending answer to peer.');
+
+        var desc = new RTCSessionDescription(message);
+
+        connect();
+
+        peerConn.setRemoteDescription(desc);
+        peerConn.createAnswer(onLocalSessionCreated, logError);
+    }
+    else if (message.type === 'answer')
+    {
+        console.log('CONSOLE: Got answer.');
+
+        var desc = new RTCSessionDescription(message);
+
+        peerConn.setRemoteDescription(desc);
+    }
+    else if (message.type === 'candidate')
+    {
+        peerConn.addIceCandidate(new RTCIceCandidate({ candidate: message.candidate }));
+    }
+}
+
+///////////////////////////// STANDARD FUNCTIONS ///////////////////////////////
 
 function populateDeviceList(devices)
 {
@@ -352,7 +372,7 @@ function gotStream(stream)
 function bindStreamToCanvas(stream)
 {
     const track = stream.getVideoTracks()[0];
-    let feed = videoCanvas[boundVideoIndex];
+    let feed = localVideoCanvas[boundVideoIndex];
     feed.srcObject = stream;
 
     feed.onloadedmetadata = function()
@@ -412,7 +432,7 @@ function saveImage(value)
 
     imgCanvas[value].setAttribute("height", settings.height);
     imgCanvas[value].setAttribute("width", settings.width);
-    imgCanvas[value].getContext('2d').drawImage(videoCanvas[value], 0, 0, settings.width, settings.height);
+    imgCanvas[value].getContext('2d').drawImage(localVideoCanvas[value], 0, 0, settings.width, settings.height);
 
     let dataURL = imgCanvas[value].toDataURL('image/png').replace("image/png", "image/octet-stream");
     
@@ -427,7 +447,7 @@ function sendImage(value)
 
     imgCanvas[value].setAttribute("height", settings.height);
     imgCanvas[value].setAttribute("width", settings.width);
-    imgCanvas[value].getContext('2d').drawImage(videoCanvas[value], 0, 0, settings.width, settings.height);
+    imgCanvas[value].getContext('2d').drawImage(localVideoCanvas[value], 0, 0, settings.width, settings.height);
 
     // Split data channel message in chunks of this byte length.
     var CHUNK_LEN = 64000;
@@ -510,9 +530,7 @@ function renderIncomingPhoto(data)
     context.putImageData(img, 0, 0);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-function displayFeedback()
+function getFeedback()
 {
     applyConstraintsButton.disabled = false;
 
@@ -560,3 +578,27 @@ function logError(err)
         console.warn(err.toString(), err);
     }
 }
+
+//////////////////////// \/ INITIALIZER BEGINS HERE \/ /////////////////////////
+
+// Initial gUM scan
+navigator.mediaDevices.getUserMedia(initConstraints).catch(handleError);
+navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(startVideo).catch(handleError);
+console.log(`CONSOLE : Video sources -> `, videoInputSources);
+
+let supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+console.log(`CONSOLE : Supported constraints -> `, supportedConstraints)
+
+if (location.hostname.match(/localhost|127\.0\.0/))
+{
+    socket.emit('ipaddr');
+}
+
+window.addEventListener('unload', function()
+{
+    console.log(`CONSOLE: Unloading window. Notifying peers in ${room}.`);
+    socket.emit('bye', room);
+});
+
+// Make a move on a room.
+socket.emit('create or join', room);

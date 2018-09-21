@@ -37,11 +37,16 @@
     <div id="buttons">
         <div id="buttonsLeft">
             <button id="startVideo">Start Video</button>
+            <button id="connect" disabled>Connect</button>
+            <button id="stopVideo" disabled>Stop Video</button>
+        </div>
+    </div>
+    <div id="buttons">
+        <div id="buttonsLeft">
             <button id="saveImage1" disabled>Save Image 1</button>
             <button id="saveImage2" disabled>Save Image 2</button>
             <button id="sendImage1" disabled>Send Image 1</button>
             <button id="sendImage2" disabled>Send Image 2</button>
-            <button id="stopVideo" disabled>Stop Video</button>
         </div>
         <div id="buttonsRight">
             <button id="getFeedback" disabled>Get Settings</button>
@@ -56,47 +61,47 @@
 
     <section>
         <div id="feedArray" style="text-align: center;">
-            Camera 1 (User-Facing)<br>
+            Local Camera 1 (User-Facing)<br>
             <video id="outFeed1" playsinline autoplay muted></video><br>
         </div>
         <div id="feedArray" style="text-align: center;">
-            Camera 2 (Environment-Facing)<br>
+            Local Camera 2 (Environment-Facing)<br>
             <video id="outFeed2" playsinline autoplay muted></video><br>
         </div>
     </section>
 
     <section>
         <div id="feedArray" style="text-align: center;">
-            Incoming Camera 1 (User-Facing)<br>
+            Remote Camera 1 (User-Facing)<br>
             <video id="inFeed1" playsinline autoplay muted></video><br>
         </div>
         <div id="feedArray" style="text-align: center;">
-            Incoming Camera 2 (Environment-Facing)<br>
+            Remote Camera 2 (Environment-Facing)<br>
             <video id="inFeed2" playsinline autoplay muted></video><br>
         </div>
     </section>
     
     <section>
         <div id="feedArray">
-            Camera 1 Settings<br>
+            Local Camera 1 Settings<br>
             <div id="fbSettings1" class="output"></div>
         </div>
         <div id="feedArray">
-            Camera 2 Settings<br>
+            Local Camera 2 Settings<br>
             <div id="fbSettings2" class="output"></div>
         </div>
         <div id="feedArray">
-            Camera 1 Capabilities<br>
+            Local Camera 1 Capabilities<br>
             <div id="fbCapabilities1" class="output"></div>
         </div>
         <div id="feedArray">
-            Camera 2 Capabilities<br>
+            Local Camera 2 Capabilities<br>
             <div id="fbCapabilities2" class="output"></div>
         </div>
     </section>
 
     <section>
-        <h2>Incoming photos</h2>
+        <h2>Remotely Transmitted Images</h2>
         <div id="incomingImages"></div>
     </section>
 
