@@ -32,25 +32,33 @@ io.sockets.on('connection', function(socket)
     // convenience function to log server messages on the client
     function log()
     {
-        var array = ['Message from server:'];
+        var array = ['SERVER:'];
         array.push.apply(array, arguments);
         socket.emit('log', array);
     }
 
-    socket.on('message', function(message) {
-        log('Client said: ', message);
-        // for a real app, would be room-only (not broadcast)
-        socket.broadcast.emit('message', message);
+    socket.on('ipaddr', function()
+    {
+        var ifaces = os.networkInterfaces();
+        for (var dev in ifaces)
+        {
+            ifaces[dev].forEach(function(details)
+            {
+                if (details.family === 'IPv4' && details.address !== '127.0.0.1')
+                {
+                    socket.emit('ipaddr', details.address);
+                }
+            });
+        }
     });
-    
+
     socket.on('create or join', function(room)
     {
         log('Received request to create or join room ' + room);
     
         var clientsInRoom = io.sockets.adapter.rooms[room];
         var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
-        log('Room ' + room + ' now has ' + numClients + ' client(s)');
-    
+        
         if (numClients === 0)
         {
             socket.join(room);
@@ -69,33 +77,33 @@ io.sockets.on('connection', function(socket)
         {
             socket.emit('full', room);
         }
+
+        log('Room ' + room + ' now has ' + io.sockets.adapter.rooms[room].length + ' client(s)');
     });
-    
-    socket.on('ipaddr', function()
+
+    socket.on('message', function(message)
     {
-        var ifaces = os.networkInterfaces();
-        for (var dev in ifaces)
-        {
-            ifaces[dev].forEach(function(details)
-            {
-                if (details.family === 'IPv4' && details.address !== '127.0.0.1')
-                {
-                    socket.emit('ipaddr', details.address);
-                }
-            });
-        }
+        log('Client said: ', message);
+        // for a real app, would be room-only (not broadcast)
+        socket.broadcast.emit('message', message);
     });
-    
+
+    socket.on('imagerequest', function()
+    {
+        log('Client requested an image.');
+        socket.broadcast.emit('imagerequest');
+    });
+
     socket.on('disconnect', function(reason) {
         console.log(`Peer or server disconnected. Reason: ${reason}.`);
         socket.broadcast.emit('bye');
     });
-    
+
     socket.on('bye', function(room) {
         console.log(`Peer said bye on room ${room}.`);
     });
 })
 
-// Misc
+// Misc.
 console.log("HTTP redirecting to HTTPS on port 443...");
 console.log("WebRTC Page is up!");

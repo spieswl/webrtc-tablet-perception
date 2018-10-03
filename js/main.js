@@ -3,6 +3,7 @@
 // Button elements
 const startVideoButton = document.querySelector('button#startVideo');
 const connectButton = document.querySelector('button#connect');
+const requestImageButton = document.querySelector('button#reqImage');
 const saveImage1Button = document.querySelector('button#saveImage1');
 const saveImage2Button = document.querySelector('button#saveImage2');
 const sendImage1Button = document.querySelector('button#sendImage1');
@@ -14,6 +15,7 @@ const showPatternButton = document.querySelector('button#showPattern');
 
 startVideoButton.onclick = startVideo;
 connectButton.onclick = connect;
+requestImageButton.onclick = requestImage;
 saveImage1Button.onclick = function () { saveImage(0); };
 saveImage2Button.onclick = function () { saveImage(1); };
 sendImage1Button.onclick = function () { sendImage(0); };
@@ -255,29 +257,36 @@ socket.on('joined', function(room, clientId)
     console.log('CONSOLE: This peer has joined room', room, 'with client ID', clientId);
     isInitiator = false;
 });
-  
+
+socket.on('ready', function()
+{
+    console.log('CONSOLE: Socket is ready.');
+    if (isInitiator)    { connectButton.disabled = false; }
+    else                { connectButton.disabled = true; }
+});
+
 socket.on('full', function(room)
 {
     alert('CONSOLE: Room ' + room + ' is full. We will create a new room for you.');
     window.location.hash = '';
     window.location.reload();
 });
-  
-socket.on('ready', function()
-{
-    console.log('CONSOLE: Socket is ready.');
-    connectButton.disabled = false;
-});
-
-socket.on('log', function(array)
-{
-    console.log.apply(console, array);
-});
 
 socket.on('message', function(message)
 {
     console.log('CONSOLE: Client received message -> ', message);
     signalingMessageCallback(message);
+});
+
+socket.on('imagerequest', function()
+{
+    console.log('CONSOLE: Image request received. Sending image from feed 1.');
+    sendImage(0);
+});
+
+socket.on('log', function(array)
+{
+    console.log.apply(console, array);
 });
 
 socket.on('disconnect', function(reason)
@@ -400,6 +409,7 @@ function startVideo()
         navigator.mediaDevices.getUserMedia(getStreamConstraints(k)).then(gotStream).then(bindStreamToCanvas).catch(handleError);
     }
     
+    requestImageButton.disabled = false;
     saveImage1Button.disabled = false;
     saveImage2Button.disabled = false;
     sendImage1Button.disabled = false;
@@ -424,6 +434,11 @@ function stopVideo()
     }
 
     startVideoButton.disabled = false;
+}
+
+function requestImage()
+{
+    socket.emit('imagerequest');
 }
 
 function saveImage(value)
