@@ -35,8 +35,8 @@ const zoomValue = document.querySelector('output[id="zoomSetValue"]');
 var videoInputSources = [];
 var streamList = [];
 var trackList = [];
-var localVideoCanvas = [ document.querySelector('video#outFeed') ];
-var remoteVideoCanvas = [ document.querySelector('video#inFeed') ];
+var localVideoCanvas = document.querySelector('video#outFeed');
+var remoteVideoCanvas = document.querySelector('video#inFeed');
 var imgCanvas = document.createElement('canvas');
 var imgLink = document.createElement('a');
 var incomingImgs = document.querySelector('div#incomingImages');
@@ -44,10 +44,8 @@ var overlayDivs = [];
 var settingsDiv = document.querySelector('div#camSettings');
 var capabilitiesDiv = document.querySelector('div#camCapabilities');
 
-const cameraFacingOrder = [ "user", "environment" ];
 var imgContextW;
 var imgContextH;
-var boundVideoIndex = 0;
 
 var initConstraints = 
 {
@@ -65,7 +63,7 @@ var standardConstraints =
         height:                 {   min: 240,   exact: 480,     max: 1080   },
         frameRate:              {   min: 0,     ideal: 30,      max: 60     },
 
-        facingMode:             {   ideal: cameraFacingOrder[0]             }
+        facingMode:             {   ideal: "user"                           }
     }
 };
 
@@ -86,7 +84,7 @@ if (!room)
 
 function connect()
 {
-    connectButton.disabled = true;
+    // connectButton.disabled = true;
     createPeerConnection(isInitiator, configuration);
 }
 
@@ -147,9 +145,9 @@ function createPeerConnection(isInitiator, config)
 
     peerConn.ontrack = function(event)
     {
-        if(!remoteVideoCanvas[0].srcObject)
+        if(!remoteVideoCanvas.srcObject)
         {
-            remoteVideoCanvas[0].srcObject = event.streams[0];
+            remoteVideoCanvas.srcObject = event.streams[0];
         }
         else return;
     };
@@ -283,8 +281,8 @@ socket.on('joined', function(room, clientId)
 socket.on('ready', function()
 {
     console.log('CONSOLE: Socket is ready.');
-    if (isInitiator)    { connectButton.disabled = false; }
-    else                { connectButton.disabled = true; }
+    //if (isInitiator)    { connectButton.disabled = false; }
+    //else                { connectButton.disabled = true; }
 });
 
 socket.on('full', function(room)
@@ -314,7 +312,7 @@ socket.on('log', function(array)
 socket.on('disconnect', function(reason)
 {
     console.log(`CONSOLE: Disconnected -> ${reason}.`);
-    connectButton.disabled = false;
+    //connectButton.disabled = false;
 });
 
 socket.on('bye', function(room)
@@ -322,7 +320,8 @@ socket.on('bye', function(room)
     console.log(`CONSOLE: Peer leaving room ${room}.`);
 
     // If peer did not create the room, re-enter to be creator.
-    if (!isInitiator) {
+    if (!isInitiator)
+    {
         window.location.reload();
     }
 });
@@ -373,7 +372,7 @@ function populateDeviceList(devices)
 function gotStream(stream)
 {
     let localTrack = stream.getVideoTracks()[0];
-    console.log(`CONSOLE: Track`, boundVideoIndex+1 ,`listing ->`, localTrack);
+    console.log(`CONSOLE: Track listing ->`, localTrack);
     
     streamList.push(stream);
     trackList.push(localTrack);
@@ -384,7 +383,7 @@ function gotStream(stream)
 function bindStreamToCanvas(stream)
 {
     const track = stream.getVideoTracks()[0];
-    let feed = localVideoCanvas[boundVideoIndex];
+    let feed = localVideoCanvas;
     feed.srcObject = stream;
 
     feed.onloadedmetadata = function()
@@ -393,22 +392,16 @@ function bindStreamToCanvas(stream)
         imgContextH = feed.videoHeight;
         console.log('CONSOLE: gotStream with width and height -> ', imgContextW, imgContextH);
     };
-
-    boundVideoIndex++;
 }
 
 function startVideo()
 {
     startVideoButton.disabled = true;
 
-    boundVideoIndex = 0;
     streamList = [];
     trackList = [];
 
-    for (let k = 0; k !== videoInputSources.length; ++k)
-    {
-        navigator.mediaDevices.getUserMedia(standardConstraints).then(gotStream).then(bindStreamToCanvas).catch(handleError);
-    }
+    navigator.mediaDevices.getUserMedia(standardConstraints).then(gotStream).then(bindStreamToCanvas).catch(handleError);
     
     stopVideoButton.disabled = false;
     getFeedbackButton.disabled = false;
@@ -452,7 +445,7 @@ function sendImage()
 
     imgCanvas.setAttribute("height", settings.height);
     imgCanvas.setAttribute("width", settings.width);
-    imgCanvas.getContext('2d').drawImage(localVideoCanvas[0], 0, 0, settings.width, settings.height);
+    imgCanvas.getContext('2d').drawImage(localVideoCanvas, 0, 0, settings.width, settings.height);
 
     // Split data channel message in chunks of this byte length.
     var CHUNK_LEN = 64000;
@@ -495,7 +488,7 @@ function sendImage()
 function showPattern()
 {
     var pattern = document.createElement('img');
-    pattern.setAttribute('src', 'images/sin-pattern_2048x2048.png');
+    pattern.setAttribute('src', 'images/sin-pattern_f100_2048x1536.png');
     pattern.style.cssText = 'max-width: none;'
     pattern.addEventListener("click", function()
     {
@@ -547,25 +540,46 @@ function getFeedback()
     applyConstraintsButton.disabled = false;
 
     // Using settings and capabilities to modify on-page controls
-    if (settings.exposureMode === 'continuous')     { expSelector[0].checked = true; }
-    else if (settings.exposureMode === 'manual')    { expSelector[1].checked = true; }
-
-    expSlider.min = capabilities.exposureCompensation.min;
-    expSlider.value = settings.exposureCompensation.value;
-    expSlider.max = capabilities.exposureCompensation.max;
-    expSlider.step = capabilities.exposureCompensation.step;
-    expValue.innerHTML = expSlider.value;
-
-    if (settings.focusMode === 'continuous')        { focusSelector[0].checked = true; }
-    else if (settings.focusMode === 'manual')       { focusSelector[1].checked = true; }
-
+    if ('exposureMode' in capabilities)
+    {
+        if (settings.exposureMode === 'continuous')     { expSelector[0].checked = true; }
+        else if (settings.exposureMode === 'manual')    { expSelector[1].checked = true; }
+    }
+    else
+    {
+        console.log('Exposure control is not supported by ' + trackList[0].label);
+    }
+    
+    if ('exposureCompensation' in capabilities)
+    {
+        expSlider.min = capabilities.exposureCompensation.min;
+        expSlider.value = settings.exposureCompensation.value;
+        expSlider.max = capabilities.exposureCompensation.max;
+        expSlider.step = capabilities.exposureCompensation.step;
+        expValue.innerHTML = expSlider.value;
+    }
+    else
+    {
+        console.log('Exposure settings are not supported by ' + trackList[0].label);
+    }
+    
+    if ('focusMode' in capabilities)
+    {
+        if (settings.focusMode === 'continuous')        { focusSelector[0].checked = true; }
+        else if (settings.focusMode === 'manual')       { focusSelector[1].checked = true; }
+    }
+    else
+    {
+        console.log('Focus control is not supported by ' + trackList[0].label);
+    }
+    
     /*
     focusSlider.min = ?;
     focusSlider.value = ?;
     focusSlider.max = ?;
     focusSlider.step = ?;
     focusValue.innerHTML = focusSlider.value;
-
+    
     whtBalSlider.min = ?;
     whtBalSlider.value = ?;
     whtBalSlider.max = ?;
@@ -573,11 +587,18 @@ function getFeedback()
     whtBalValue.innerHTML = whtBalSlider.value;
     */
 
-    zoomSlider.min = capabilities.zoom.min;
-    zoomSlider.value = settings.zoom;
-    zoomSlider.max = capabilities.zoom.max;
-    zoomSlider.step = capabilities.zoom.step;
-    zoomValue.innerHTML = zoomSlider.value;
+    if ('zoom' in capabilities)
+    {
+        zoomSlider.min = capabilities.zoom.min;
+        zoomSlider.value = settings.zoom;
+        zoomSlider.max = capabilities.zoom.max;
+        zoomSlider.step = capabilities.zoom.step;
+        zoomValue.innerHTML = zoomSlider.value;
+    }
+    else
+    {
+        console.log('Zoom is not supported by ' + trackList[0].label);
+    }
 }
 
 function applyDesiredConstraints()
@@ -644,4 +665,5 @@ window.addEventListener('unload', function()
 });
 
 // Make a move on a room.
+console.log(`CONSOLE : Moving to join room `, room);
 socket.emit('create or join', room);
