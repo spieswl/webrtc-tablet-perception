@@ -18,7 +18,7 @@ const https_app = https.createServer(options, function (req, res)
     fileServer.serve(req, res);
 }).listen(443);
 
-// HTTP redirect
+// HTTP redirect to HTTPS
 const http_redir = http.createServer(function (req, res)
 {
     res.writeHead(301, { "Location": "https://" + req.headers['host'] + req.url });
@@ -94,12 +94,14 @@ io.sockets.on('connection', function(socket)
         socket.broadcast.emit('imagerequest');
     });
 
-    socket.on('disconnect', function(reason) {
+    socket.on('disconnect', function(reason)
+    {
         console.log(`Peer or server disconnected. Reason: ${reason}.`);
         socket.broadcast.emit('bye');
     });
 
-    socket.on('bye', function(room) {
+    socket.on('bye', function(room)
+    {
         console.log(`Peer said bye on room ${room}.`);
     });
 })

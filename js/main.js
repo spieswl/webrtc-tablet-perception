@@ -4,10 +4,7 @@
 const startVideoButton = document.querySelector('button#startVideo');
 const connectButton = document.querySelector('button#connect');
 const requestImageButton = document.querySelector('button#reqImage');
-const saveImage1Button = document.querySelector('button#saveImage1');
-const saveImage2Button = document.querySelector('button#saveImage2');
-const sendImage1Button = document.querySelector('button#sendImage1');
-const sendImage2Button = document.querySelector('button#sendImage2');
+const saveImageButton = document.querySelector('button#saveImage');
 const stopVideoButton = document.querySelector('button#stopVideo');
 const getFeedbackButton = document.querySelector('button#getFeedback');
 const applyConstraintsButton = document.querySelector('button#applyConstraints');
@@ -16,34 +13,61 @@ const showPatternButton = document.querySelector('button#showPattern');
 startVideoButton.onclick = startVideo;
 connectButton.onclick = connect;
 requestImageButton.onclick = requestImage;
-saveImage1Button.onclick = function () { saveImage(0); };
-saveImage2Button.onclick = function () { saveImage(1); };
-sendImage1Button.onclick = function () { sendImage(0); };
-sendImage2Button.onclick = function () { sendImage(1); };
+saveImageButton.onclick = saveImage;
 stopVideoButton.onclick = stopVideo;
 getFeedbackButton.onclick = getFeedback;
 applyConstraintsButton.onclick = applyDesiredConstraints;
 showPatternButton.onclick = showPattern;
 
+// Settings control elements
+const expSelector = document.getElementsByName('expCtrl');
+const expSlider = document.querySelector('input[name="expSet"]');
+const expValue = document.querySelector('output[id="expSetValue"]');
+const focusSelector = document.getElementsByName('focusCtrl');
+const focusSlider = document.querySelector('input[name="focusSet"]');
+const focusValue = document.querySelector('output[id="focusSetValue"]');
+const whtBalSlider = document.querySelector('input[name="whtBalSet"]');
+const whtBalValue = document.querySelector('output[id="whtBalSetValue"]');
+const zoomSlider = document.querySelector('input[name="zoomSet"]');
+const zoomValue = document.querySelector('output[id="zoomSetValue"]');
+
 // WebRTC features & elements
 var videoInputSources = [];
 var streamList = [];
 var trackList = [];
-var localVideoCanvas = [ document.querySelector('video#outFeed1'), document.querySelector('video#outFeed2') ];
-var remoteVideoCanvas = [ document.querySelector('video#inFeed1'), document.querySelector('video#inFeed2') ];
-var imgCanvas = [ document.createElement('canvas'), document.createElement('canvas') ];
-var imgLink = [ document.createElement('a'), document.createElement('a') ];
-var incomingImgs = document.getElementById('incomingImages');
+var localVideoCanvas = [ document.querySelector('video#outFeed') ];
+var remoteVideoCanvas = [ document.querySelector('video#inFeed') ];
+var imgCanvas = document.createElement('canvas');
+var imgLink = document.createElement('a');
+var incomingImgs = document.querySelector('div#incomingImages');
 var overlayDivs = [];
-
-var settingsDivs = [ document.querySelector('div#fbSettings1'), document.querySelector('div#fbSettings2') ];
-var capabilitiesDivs = [ document.querySelector('div#fbCapabilities1'), document.querySelector('div#fbCapabilities2') ];
+var settingsDiv = document.querySelector('div#camSettings');
+var capabilitiesDiv = document.querySelector('div#camCapabilities');
 
 const cameraFacingOrder = [ "user", "environment" ];
-const initConstraints = { audio: false, video: true };
 var imgContextW;
 var imgContextH;
 var boundVideoIndex = 0;
+
+var initConstraints = 
+{
+    audio: false,
+    video: true
+};
+var standardConstraints = 
+{
+    audio: false,
+    video:
+    {
+        deviceId:               "",
+
+        width:                  {   min: 320,   exact: 640,     max: 1920   },
+        height:                 {   min: 240,   exact: 480,     max: 1080   },
+        frameRate:              {   min: 0,     ideal: 30,      max: 60     },
+
+        facingMode:             {   ideal: cameraFacingOrder[0]             }
+    }
+};
 
 // Networking elements
 var configuration = null;
@@ -127,10 +151,6 @@ function createPeerConnection(isInitiator, config)
         {
             remoteVideoCanvas[0].srcObject = event.streams[0];
         }
-        else if (!remoteVideoCanvas[1].srcObject)
-        {
-            remoteVideoCanvas[1].srcObject = event.streams[0];
-        }
         else return;
     };
 }
@@ -152,11 +172,13 @@ function onDataChannelCreated(channel)
     channel.onopen = function()
     {
         console.log('CONSOLE: Data channel opened!');
+        requestImageButton.disabled = false;
     };
   
     channel.onclose = function ()
     {
         console.log('CONSOLE: Data channel closed!');
+        requestImageButton.disabled = true;
     }
 
     channel.onmessage = (adapter.browserDetails.browser === 'firefox') ? receiveDataFirefoxFactory() : receiveDataChromeFactory();
@@ -281,7 +303,7 @@ socket.on('message', function(message)
 socket.on('imagerequest', function()
 {
     console.log('CONSOLE: Image request received. Sending image from feed 1.');
-    sendImage(0);
+    sendImage();
 });
 
 socket.on('log', function(array)
@@ -348,25 +370,6 @@ function populateDeviceList(devices)
     }
 }
 
-function getStreamConstraints(counter)
-{
-    const constraints = {};
-
-    constraints.audio = false;
-    constraints.video =
-    {
-        deviceId:               videoInputSources[counter],
-
-        width:                  {   min: 320,   exact: 640,     max: 1920   },
-        height:                 {   min: 240,   exact: 480,     max: 1080   },
-        frameRate:              {   min: 0,     ideal: 30,      max: 60     },
-
-        facingMode:             {   ideal: cameraFacingOrder[counter]       }
-    };
-
-    return constraints;
-}
-
 function gotStream(stream)
 {
     let localTrack = stream.getVideoTracks()[0];
@@ -389,8 +392,6 @@ function bindStreamToCanvas(stream)
         imgContextW = feed.videoWidth;
         imgContextH = feed.videoHeight;
         console.log('CONSOLE: gotStream with width and height -> ', imgContextW, imgContextH);
-        console.log(`CONSOLE: Track`, boundVideoIndex ,`capabilities ->`, track.getCapabilities());
-        console.log(`CONSOLE: Track`, boundVideoIndex ,`settings ->`, track.getSettings());
     };
 
     boundVideoIndex++;
@@ -406,24 +407,17 @@ function startVideo()
 
     for (let k = 0; k !== videoInputSources.length; ++k)
     {
-        navigator.mediaDevices.getUserMedia(getStreamConstraints(k)).then(gotStream).then(bindStreamToCanvas).catch(handleError);
+        navigator.mediaDevices.getUserMedia(standardConstraints).then(gotStream).then(bindStreamToCanvas).catch(handleError);
     }
     
-    requestImageButton.disabled = false;
-    saveImage1Button.disabled = false;
-    saveImage2Button.disabled = false;
-    sendImage1Button.disabled = false;
-    sendImage2Button.disabled = false;
     stopVideoButton.disabled = false;
     getFeedbackButton.disabled = false;
 }
 
 function stopVideo()
 {
-    saveImage1Button.disabled = true;
-    saveImage2Button.disabled = true;
-    sendImage1Button.disabled = true;
-    sendImage2Button.disabled = true;
+    requestImageButton.disabled = true;
+    saveImageButton.disabled = true;
     stopVideoButton.disabled = true;
     getFeedbackButton.disabled = true;
     applyConstraintsButton.disabled = true;
@@ -441,37 +435,33 @@ function requestImage()
     socket.emit('imagerequest');
 }
 
-function saveImage(value)
+function saveImage()
 {
-    var settings = trackList[value].getSettings();
+    let newestImg = incomingImgs.getElementsByTagName('canvas')[0];
 
-    imgCanvas[value].setAttribute("height", settings.height);
-    imgCanvas[value].setAttribute("width", settings.width);
-    imgCanvas[value].getContext('2d').drawImage(localVideoCanvas[value], 0, 0, settings.width, settings.height);
+    let dataURL = newestImg.toDataURL('image/png').replace("image/png", "image/octet-stream");
 
-    let dataURL = imgCanvas[value].toDataURL('image/png').replace("image/png", "image/octet-stream");
-    
-    imgLink[value].href = dataURL;
-    imgLink[value].download = "cam" + String(value) + "_image.png";
-    imgLink[value].click();
+    imgLink.href = dataURL;
+    imgLink.download = "cam1_image.png";
+    imgLink.click();
 }
 
-function sendImage(value)
+function sendImage()
 {
-    var settings = trackList[value].getSettings();
+    var settings = trackList[0].getSettings();
 
-    imgCanvas[value].setAttribute("height", settings.height);
-    imgCanvas[value].setAttribute("width", settings.width);
-    imgCanvas[value].getContext('2d').drawImage(localVideoCanvas[value], 0, 0, settings.width, settings.height);
+    imgCanvas.setAttribute("height", settings.height);
+    imgCanvas.setAttribute("width", settings.width);
+    imgCanvas.getContext('2d').drawImage(localVideoCanvas[0], 0, 0, settings.width, settings.height);
 
     // Split data channel message in chunks of this byte length.
     var CHUNK_LEN = 64000;
-    var img = imgCanvas[value].getContext('2d').getImageData(0, 0, imgContextW, imgContextH);
+    var img = imgCanvas.getContext('2d').getImageData(0, 0, imgContextW, imgContextH);
     var len = img.data.byteLength;
     var n = len / CHUNK_LEN | 0;
     
     console.log('CONSOLE: Sending a total of ' + len + ' byte(s).');
-    
+
     if (!dataChannel)
     {
         logError('ERROR: Connection has not been initiated. Get two peers in the same room first!');
@@ -482,9 +472,9 @@ function sendImage(value)
         logError('ERROR: Connection was lost. Peer closed the connection.');
         return;
     }
-    
+
     dataChannel.send(len);
-    
+
     // Split the photo and send in chunks of about 64KB
     for (var i = 0; i < n; i++)
     {
@@ -493,7 +483,7 @@ function sendImage(value)
         console.log('CONSOLE: ' + start + ' - ' + (end - 1));
         dataChannel.send(img.data.subarray(start, end));
     }
-    
+
     // Send the remainder, if any
     if (len % CHUNK_LEN)
     {
@@ -509,10 +499,9 @@ function showPattern()
     pattern.style.cssText = 'max-width: none;'
     pattern.addEventListener("click", function()
     {
-        console.log("TESTING");
         var closer = document.querySelector("div#overlay");
         closer.parentNode.removeChild(closer);
-        
+
         if (document.cancelFullScreen)              { document.cancelFullScreen(); }
         else if (document.msCancelFullScreen)       { document.msCancelFullScreen(); }
         else if (document.mozCancelFullScreen)      { document.mozCancelFullScreen(); }
@@ -538,7 +527,7 @@ function renderIncomingPhoto(data)
     canvas.height = imgContextH;
     canvas.classList.add('incomingImages');
     incomingImgs.insertBefore(canvas, incomingImgs.firstChild);
-  
+
     var context = canvas.getContext('2d');
     var img = context.createImageData(imgContextW, imgContextH);
     img.data.set(data);
@@ -547,21 +536,57 @@ function renderIncomingPhoto(data)
 
 function getFeedback()
 {
+    let settings = trackList[0].getSettings();
+    console.log(`CONSOLE: Track 1 current settings ->`, settings);
+    settingsDiv.textContent = JSON.stringify(settings, null, '    ');
+
+    let capabilities = trackList[0].getCapabilities();
+    console.log(`CONSOLE: Track 1 current capabilities ->`, capabilities);
+    capabilitiesDiv.textContent = JSON.stringify(capabilities, null, '    ');
+
     applyConstraintsButton.disabled = false;
 
-    for (let k = 0; k !== streamList.length; ++k)
-    {
-        let settings = trackList[k].getSettings();
-        settingsDivs[k].textContent = JSON.stringify(settings, null, '    ');
+    // Using settings and capabilities to modify on-page controls
+    if (settings.exposureMode === 'continuous')     { expSelector[0].checked = true; }
+    else if (settings.exposureMode === 'manual')    { expSelector[1].checked = true; }
 
-        let capabilities = trackList[k].getCapabilities();
-        capabilitiesDivs[k].textContent = JSON.stringify(capabilities, null, '    ');
-    }
+    expSlider.min = capabilities.exposureCompensation.min;
+    expSlider.value = settings.exposureCompensation.value;
+    expSlider.max = capabilities.exposureCompensation.max;
+    expSlider.step = capabilities.exposureCompensation.step;
+    expValue.innerHTML = expSlider.value;
+
+    if (settings.focusMode === 'continuous')        { focusSelector[0].checked = true; }
+    else if (settings.focusMode === 'manual')       { focusSelector[1].checked = true; }
+
+    /*
+    focusSlider.min = ?;
+    focusSlider.value = ?;
+    focusSlider.max = ?;
+    focusSlider.step = ?;
+    focusValue.innerHTML = focusSlider.value;
+
+    whtBalSlider.min = ?;
+    whtBalSlider.value = ?;
+    whtBalSlider.max = ?;
+    whtBalSlider.step = ?;
+    whtBalValue.innerHTML = whtBalSlider.value;
+    */
+
+    zoomSlider.min = capabilities.zoom.min;
+    zoomSlider.value = settings.zoom;
+    zoomSlider.max = capabilities.zoom.max;
+    zoomSlider.step = capabilities.zoom.step;
+    zoomValue.innerHTML = zoomSlider.value;
 }
 
 function applyDesiredConstraints()
 {
-    ;
+    console.log("CONSOLE: Currently-applied constraints ->", standardConstraints);
+
+    /*
+    stopVideo();
+    */
 }
 
 /////////////////////////////// UTILITY FUNCTIONS //////////////////////////////
@@ -600,6 +625,9 @@ function logError(err)
 navigator.mediaDevices.getUserMedia(initConstraints).catch(handleError);
 navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(startVideo).catch(handleError);
 console.log(`CONSOLE : Video sources -> `, videoInputSources);
+
+// Update normal constraints with deviceID after the initial query
+standardConstraints.video.deviceId = videoInputSources[0];
 
 let supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
 console.log(`CONSOLE : Supported constraints -> `, supportedConstraints)
