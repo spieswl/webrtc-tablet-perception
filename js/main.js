@@ -33,8 +33,8 @@ const zoomValue = document.querySelector('output[id="zoomSetValue"]');
 
 // WebRTC features & elements
 var videoInputSources = [];
-var streamList = [];
-var trackList = [];
+var selectStream;
+var selectTrack;
 var localVideoCanvas = document.querySelector('video#outFeed');
 var remoteVideoCanvas = document.querySelector('video#inFeed');
 var imgCanvas = document.createElement('canvas');
@@ -47,15 +47,10 @@ var capabilitiesDiv = document.querySelector('div#camCapabilities');
 var imgContextW;
 var imgContextH;
 
-var initConstraints = 
-{
-    audio: false,
-    video: true
-};
 var standardConstraints = 
 {
     audio: false,
-    video:
+    video: 
     {
         deviceId:               "",
 
@@ -82,26 +77,17 @@ if (!room)
 
 /////////////////////////////// WEBRTC FUNCTIONS ///////////////////////////////
 
-function connect()
-{
-    // connectButton.disabled = true;
-    createPeerConnection(isInitiator, configuration);
-}
-
 function createPeerConnection(isInitiator, config)
 {
-    console.log('CONSOLE: Creating Peer connection as initiator?', isInitiator, 'config:', config);
+    console.log('CLIENT: Creating Peer connection as initiator?', isInitiator, 'config:', config);
     peerConn = new RTCPeerConnection(config);
 
-    for (let k = 0; k !== streamList.length; ++k)
-    {
-        peerConn.addTrack(trackList[k], streamList[k]);
-    }
+    peerConn.addTrack(selectTrack, selectStream);
 
     // Send any ICE candidates to the other peer
     peerConn.onicecandidate = function(event)
     {
-        console.log('CONSOLE: ICE Candidate event -> ', event);
+        console.log('CLIENT: ICE Candidate event -> ', event);
         if (event.candidate)
         {
             sendMessage(
@@ -114,34 +100,28 @@ function createPeerConnection(isInitiator, config)
         }
         else
         {
-            console.log('CONSOLE: End of candidates.');
+            console.log('CLIENT: End of candidates.');
         }
     };
 
     if (isInitiator)
     {
-        console.log('CONSOLE: Creating Data channel.');
+        console.log('CLIENT: Creating Data channel.');
         dataChannel = peerConn.createDataChannel('images');
         onDataChannelCreated(dataChannel);
       
-        console.log('CONSOLE: Creating an offer.');
+        console.log('CLIENT: Creating an offer.');
         peerConn.createOffer(onLocalSessionCreated, logError);
     }
     else
     {
         peerConn.ondatachannel = function(event)
         {
-            console.log('CONSOLE: OnDataChannel -> ', event.channel);
+            console.log('CLIENT: OnDataChannel -> ', event.channel);
             dataChannel = event.channel;
             onDataChannelCreated(dataChannel);
         };
     }
-
-    peerConn.onnegotiationneeded = function()
-    {
-        console.log('CONSOLE: Negotiation needed - peerConn');
-        
-    };
 
     peerConn.ontrack = function(event)
     {
@@ -155,27 +135,27 @@ function createPeerConnection(isInitiator, config)
 
 function onLocalSessionCreated(desc)
 {
-    console.log('CONSOLE: Local session created:', desc);
+    console.log('CLIENT: Local session created ->', desc);
     peerConn.setLocalDescription(desc, function()
     {
-        console.log('CONSOLE: Sending local desc:', peerConn.localDescription);
+        console.log('CLIENT: Sending local desc ->', peerConn.localDescription);
         sendMessage(peerConn.localDescription);
     }, logError);
 }
 
 function onDataChannelCreated(channel)
 {
-    console.log('CONSOLE: OnDataChannelCreated -> ', channel);
+    console.log('CLIENT: OnDataChannelCreated -> ', channel);
 
     channel.onopen = function()
     {
-        console.log('CONSOLE: Data channel opened!');
+        console.log('CLIENT: Data channel opened!');
         requestImageButton.disabled = false;
     };
   
     channel.onclose = function ()
     {
-        console.log('CONSOLE: Data channel closed!');
+        console.log('CLIENT: Data channel closed!');
         requestImageButton.disabled = true;
     }
 
@@ -192,7 +172,7 @@ function receiveDataChromeFactory()
         {
             buf = window.buf = new Uint8ClampedArray(parseInt(event.data));
             count = 0;
-            console.log('CONSOLE: Expecting a total of ' + buf.byteLength + ' bytes.');
+            console.log('CLIENT: Expecting a total of ' + buf.byteLength + ' bytes.');
             return;
         }
   
@@ -200,11 +180,11 @@ function receiveDataChromeFactory()
         buf.set(data, count);
   
         count += data.byteLength;
-        console.log('CONSOLE: Byte count -> ' + count);
+        console.log('CLIENT: Byte count -> ' + count);
   
         if (count === buf.byteLength)
         {
-            console.log('CONSOLE: Done. Rendering image.');
+            console.log('CLIENT: Done. Rendering image.');
             renderIncomingPhoto(buf);
         }
     };
@@ -221,17 +201,17 @@ function receiveDataFirefoxFactory()
             total = parseInt(event.data);
             parts = [];
             count = 0;
-            console.log('Expecting a total of ' + total + ' bytes');
+            console.log('CLIENT: Expecting a total of ' + total + ' bytes.');
             return;
         }
   
         parts.push(event.data);
         count += event.data.size;
-        console.log('CONSOLE: Got ' + event.data.size + ' byte(s), ' + (total - count) + ' to go.');
+        console.log('CLIENT: Got ' + event.data.size + ' byte(s), ' + (total - count) + ' to go.');
   
         if (count === total)
         {
-            console.log('CONSOLE: Assembling payload');
+            console.log('CLIENT: Assembling payload');
             var buf = new Uint8ClampedArray(total);
             var compose = function(i, pos)
             {
@@ -241,7 +221,7 @@ function receiveDataFirefoxFactory()
                     buf.set(new Uint8ClampedArray(this.result), pos);
                     if (i + 1 === parts.length)
                     {
-                        console.log('CONSOLE: Done. Rendering image.');
+                        console.log('CLIENT: Done. Rendering image.');
                         renderIncomingPhoto(buf);
                     }
                     else
@@ -263,44 +243,44 @@ var socket = io.connect();
 
 socket.on('ipaddr', function(ipaddr)
 {
-    console.log('CONSOLE: Server IP address -> ' + ipaddr);
+    console.log('CLIENT: Server IP address -> ' + ipaddr);
 });
 
 socket.on('created', function(room, clientId)
 {
-    console.log('CONSOLE: Created room -> ', room, ' | Client ID -> ', clientId);
+    console.log('CLIENT: Created room -> ', room, ' | Client ID -> ', clientId);
     isInitiator = true;
 });
   
 socket.on('joined', function(room, clientId)
 {
-    console.log('CONSOLE: This peer has joined room', room, 'with client ID', clientId);
+    console.log('CLIENT: Joined room -> ', room, ' | Client ID -> ', clientId);
     isInitiator = false;
 });
 
 socket.on('ready', function()
 {
-    console.log('CONSOLE: Socket is ready.');
-    //if (isInitiator)    { connectButton.disabled = false; }
-    //else                { connectButton.disabled = true; }
+    console.log('CLIENT: Socket is ready.');
+    if (isInitiator)    { connectButton.disabled = false; }
+    else                { connectButton.disabled = true; }
 });
 
 socket.on('full', function(room)
 {
-    alert('CONSOLE: Room ' + room + ' is full. We will create a new room for you.');
+    alert('CLIENT: Room ' + room + ' is full. We will create a new room for you.');
     window.location.hash = '';
     window.location.reload();
 });
 
 socket.on('message', function(message)
 {
-    console.log('CONSOLE: Client received message -> ', message);
+    console.log('CLIENT: Client received message -> ', message);
     signalingMessageCallback(message);
 });
 
 socket.on('imagerequest', function()
 {
-    console.log('CONSOLE: Image request received. Sending image from feed 1.');
+    console.log('CLIENT: Image request received. Sending image.');
     sendImage();
 });
 
@@ -311,13 +291,13 @@ socket.on('log', function(array)
 
 socket.on('disconnect', function(reason)
 {
-    console.log(`CONSOLE: Disconnected -> ${reason}.`);
-    //connectButton.disabled = false;
+    console.log(`CLIENT: Disconnected -> ${reason}.`);
+    connectButton.disabled = false;
 });
 
 socket.on('bye', function(room)
 {
-    console.log(`CONSOLE: Peer leaving room ${room}.`);
+    console.log(`CLIENT: Peer leaving room ${room}.`);
 
     // If peer did not create the room, re-enter to be creator.
     if (!isInitiator)
@@ -328,7 +308,7 @@ socket.on('bye', function(room)
   
 function sendMessage(message)
 {
-    console.log('CONSOLE: Client sending message -> ', message);
+    console.log('CLIENT: Client sending message -> ', message);
     socket.emit('message', message);
 }
 
@@ -336,7 +316,7 @@ function signalingMessageCallback(message)
 {
     if (message.type === 'offer')
     {
-        console.log('CONSOLE: Got offer. Sending answer to peer.');
+        console.log('CLIENT: Got offer. Sending answer to peer.');
 
         var desc = new RTCSessionDescription(message);
 
@@ -347,7 +327,7 @@ function signalingMessageCallback(message)
     }
     else if (message.type === 'answer')
     {
-        console.log('CONSOLE: Got answer.');
+        console.log('CLIENT: Got answer.');
 
         var desc = new RTCSessionDescription(message);
 
@@ -361,28 +341,35 @@ function signalingMessageCallback(message)
 
 ///////////////////////////// STANDARD FUNCTIONS ///////////////////////////////
 
+function connect()
+{
+    connectButton.disabled = true;
+    createPeerConnection(isInitiator, configuration);
+}
+
 function populateDeviceList(devices)
 {
     for (let k = 0; k !== devices.length; ++k)
     {
         if (devices[k].kind === 'videoinput')   { videoInputSources.push(devices[k].deviceId); }
     }
+
+    // Update normal constraints with deviceID after the initial query
+    standardConstraints.video.deviceId = videoInputSources[0];
 }
 
 function gotStream(stream)
 {
-    let localTrack = stream.getVideoTracks()[0];
-    console.log(`CONSOLE: Track listing ->`, localTrack);
-    
-    streamList.push(stream);
-    trackList.push(localTrack);
+    selectStream = stream;
+    selectTrack = stream.getVideoTracks()[0];
+    console.log(`CLIENT: Stream listing ->`, selectStream);
+    console.log(`CLIENT: Track listing ->`, selectTrack);
 
     return stream;
 }
 
 function bindStreamToCanvas(stream)
 {
-    const track = stream.getVideoTracks()[0];
     let feed = localVideoCanvas;
     feed.srcObject = stream;
 
@@ -390,7 +377,7 @@ function bindStreamToCanvas(stream)
     {
         imgContextW = feed.videoWidth;
         imgContextH = feed.videoHeight;
-        console.log('CONSOLE: gotStream with width and height -> ', imgContextW, imgContextH);
+        console.log('CLIENT: gotStream with width and height -> ', imgContextW, imgContextH);
     };
 }
 
@@ -398,11 +385,8 @@ function startVideo()
 {
     startVideoButton.disabled = true;
 
-    streamList = [];
-    trackList = [];
-
     navigator.mediaDevices.getUserMedia(standardConstraints).then(gotStream).then(bindStreamToCanvas).catch(handleError);
-    
+
     stopVideoButton.disabled = false;
     getFeedbackButton.disabled = false;
 }
@@ -415,10 +399,7 @@ function stopVideo()
     getFeedbackButton.disabled = true;
     applyConstraintsButton.disabled = true;
 
-    for (let k = 0; k !== streamList.length; ++k)
-    {
-        streamList[k].getTracks().forEach(track => { track.stop(); });
-    }
+    selectStream.getTracks().forEach(track => { track.stop(); });
 
     startVideoButton.disabled = false;
 }
@@ -426,6 +407,52 @@ function stopVideo()
 function requestImage()
 {
     socket.emit('imagerequest');
+}
+
+function sendImage()
+{
+    var settings = selectTrack.getSettings();
+    
+    imgCanvas.setAttribute("height", settings.height);
+    imgCanvas.setAttribute("width", settings.width);
+    imgCanvas.getContext('2d').drawImage(localVideoCanvas, 0, 0, settings.width, settings.height);
+    
+    // Split data channel message in chunks of this byte length.
+    var CHUNK_LEN = 64000;
+    var img = imgCanvas.getContext('2d').getImageData(0, 0, imgContextW, imgContextH);
+    var len = img.data.byteLength;
+    var n = len / CHUNK_LEN | 0;
+    
+    console.log('CLIENT: Sending a total of ' + len + ' byte(s).');
+    
+    if (!dataChannel)
+    {
+        logError('ERROR: Connection has not been initiated. Get two peers in the same room first!');
+        return;
+    }
+    else if (dataChannel.readyState === 'closed')
+    {
+        logError('ERROR: Connection was lost. Peer closed the connection.');
+        return;
+    }
+    
+    dataChannel.send(len);
+    
+    // Split the photo and send in chunks of about 64KB
+    for (var i = 0; i < n; i++)
+    {
+        var start = i * CHUNK_LEN,
+        end = (i + 1) * CHUNK_LEN;
+        console.log('CLIENT: ' + start + ' - ' + (end - 1));
+        dataChannel.send(img.data.subarray(start, end));
+    }
+    
+    // Send the remainder, if any
+    if (len % CHUNK_LEN)
+    {
+        console.log('CLIENT: Last ' + len % CHUNK_LEN + ' byte(s).');
+        dataChannel.send(img.data.subarray(n * CHUNK_LEN));
+    }
 }
 
 function saveImage()
@@ -439,56 +466,10 @@ function saveImage()
     imgLink.click();
 }
 
-function sendImage()
-{
-    var settings = trackList[0].getSettings();
-
-    imgCanvas.setAttribute("height", settings.height);
-    imgCanvas.setAttribute("width", settings.width);
-    imgCanvas.getContext('2d').drawImage(localVideoCanvas, 0, 0, settings.width, settings.height);
-
-    // Split data channel message in chunks of this byte length.
-    var CHUNK_LEN = 64000;
-    var img = imgCanvas.getContext('2d').getImageData(0, 0, imgContextW, imgContextH);
-    var len = img.data.byteLength;
-    var n = len / CHUNK_LEN | 0;
-    
-    console.log('CONSOLE: Sending a total of ' + len + ' byte(s).');
-
-    if (!dataChannel)
-    {
-        logError('ERROR: Connection has not been initiated. Get two peers in the same room first!');
-        return;
-    }
-    else if (dataChannel.readyState === 'closed')
-    {
-        logError('ERROR: Connection was lost. Peer closed the connection.');
-        return;
-    }
-
-    dataChannel.send(len);
-
-    // Split the photo and send in chunks of about 64KB
-    for (var i = 0; i < n; i++)
-    {
-        var start = i * CHUNK_LEN,
-        end = (i + 1) * CHUNK_LEN;
-        console.log('CONSOLE: ' + start + ' - ' + (end - 1));
-        dataChannel.send(img.data.subarray(start, end));
-    }
-
-    // Send the remainder, if any
-    if (len % CHUNK_LEN)
-    {
-        console.log('CONSOLE: Last ' + len % CHUNK_LEN + ' byte(s).');
-        dataChannel.send(img.data.subarray(n * CHUNK_LEN));
-    }
-}
-
 function showPattern()
 {
     var pattern = document.createElement('img');
-    pattern.setAttribute('src', 'images/sin-pattern_f100_2048x1536.png');
+    pattern.setAttribute('src', 'images/sin-pattern_2048x2048.png');
     pattern.style.cssText = 'max-width: none;'
     pattern.addEventListener("click", function()
     {
@@ -529,12 +510,12 @@ function renderIncomingPhoto(data)
 
 function getFeedback()
 {
-    let settings = trackList[0].getSettings();
-    console.log(`CONSOLE: Track 1 current settings ->`, settings);
+    var settings = selectTrack.getSettings();
+    console.log(`CLIENT: Track 1 current settings ->`, settings);
     settingsDiv.textContent = JSON.stringify(settings, null, '    ');
 
-    let capabilities = trackList[0].getCapabilities();
-    console.log(`CONSOLE: Track 1 current capabilities ->`, capabilities);
+    var capabilities = selectTrack.getCapabilities();
+    console.log(`CLIENT: Track 1 current capabilities ->`, capabilities);
     capabilitiesDiv.textContent = JSON.stringify(capabilities, null, '    ');
 
     applyConstraintsButton.disabled = false;
@@ -547,7 +528,7 @@ function getFeedback()
     }
     else
     {
-        console.log('Exposure control is not supported by ' + trackList[0].label);
+        console.log('CLIENT: Exposure control is not supported by ' + selectTrack.label);
     }
     
     if ('exposureCompensation' in capabilities)
@@ -560,7 +541,7 @@ function getFeedback()
     }
     else
     {
-        console.log('Exposure settings are not supported by ' + trackList[0].label);
+        console.log('CLIENT: Exposure settings are not supported by ' + selectTrack.label);
     }
     
     if ('focusMode' in capabilities)
@@ -570,7 +551,7 @@ function getFeedback()
     }
     else
     {
-        console.log('Focus control is not supported by ' + trackList[0].label);
+        console.log('CLIENT: Focus control is not supported by ' + selectTrack.label);
     }
     
     /*
@@ -597,13 +578,13 @@ function getFeedback()
     }
     else
     {
-        console.log('Zoom is not supported by ' + trackList[0].label);
+        console.log('CLIENT: Zoom is not supported by ' + selectTrack.label);
     }
 }
 
 function applyDesiredConstraints()
 {
-    console.log("CONSOLE: Currently-applied constraints ->", standardConstraints);
+    console.log('CLIENT: Currently-applied constraints ->', standardConstraints);
 
     /*
     stopVideo();
@@ -619,7 +600,7 @@ function randomToken()
 
 function handleError(error)
 {
-    const message = `CONSOLE: Error ->  ${error.name} : ${error.message}`;
+    const message = `CLIENT: Error ->  ${error.name} : ${error.message}`;
 
     alert(message);
     console.log(message);
@@ -643,15 +624,12 @@ function logError(err)
 //////////////////////// \/ INITIALIZER BEGINS HERE \/ /////////////////////////
 
 // Initial gUM scan
-navigator.mediaDevices.getUserMedia(initConstraints).catch(handleError);
+navigator.mediaDevices.getUserMedia({ audio: false, video: true }).catch(handleError);
 navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(startVideo).catch(handleError);
-console.log(`CONSOLE : Video sources -> `, videoInputSources);
-
-// Update normal constraints with deviceID after the initial query
-standardConstraints.video.deviceId = videoInputSources[0];
+console.log(`CLIENT : Video sources -> `, videoInputSources);
 
 let supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-console.log(`CONSOLE : Supported constraints -> `, supportedConstraints)
+console.log(`CLIENT : Supported constraints -> `, supportedConstraints)
 
 if (location.hostname.match(/localhost|127\.0\.0/))
 {
@@ -660,10 +638,8 @@ if (location.hostname.match(/localhost|127\.0\.0/))
 
 window.addEventListener('unload', function()
 {
-    console.log(`CONSOLE: Unloading window. Notifying peers in ${room}.`);
+    console.log(`CLIENT: Unloading window. Notifying peers in ${room}.`);
     socket.emit('bye', room);
 });
 
-// Make a move on a room.
-console.log(`CONSOLE : Moving to join room `, room);
 socket.emit('create or join', room);

@@ -27,7 +27,7 @@ const http_redir = http.createServer(function (req, res)
 
 // Socket.IO
 var io = require('socket.io').listen(https_app);
-io.sockets.on('connection', function(socket)
+io.on('connection', function(socket)
 {
     // convenience function to log server messages on the client
     function log()
@@ -35,6 +35,7 @@ io.sockets.on('connection', function(socket)
         var array = ['SERVER:'];
         array.push.apply(array, arguments);
         socket.emit('log', array);
+        console.log('SERVER:', arguments);
     }
 
     socket.on('ipaddr', function()
@@ -73,7 +74,7 @@ io.sockets.on('connection', function(socket)
             io.sockets.in(room).emit('ready', room);
             socket.broadcast.emit('ready', room);
         }
-        else    // max two clients
+        else
         {
             socket.emit('full', room);
         }
@@ -84,7 +85,6 @@ io.sockets.on('connection', function(socket)
     socket.on('message', function(message)
     {
         log('Client said: ', message);
-        // for a real app, would be room-only (not broadcast)
         socket.broadcast.emit('message', message);
     });
 
@@ -96,16 +96,16 @@ io.sockets.on('connection', function(socket)
 
     socket.on('disconnect', function(reason)
     {
-        console.log(`Peer or server disconnected. Reason: ${reason}.`);
+        log(`Peer or server disconnected. Reason: ${reason}.`);
         socket.broadcast.emit('bye');
     });
 
     socket.on('bye', function(room)
     {
-        console.log(`Peer said bye on room ${room}.`);
+        log(`Peer said bye on room ${room}.`);
     });
 })
 
 // Misc.
-console.log("HTTP redirecting to HTTPS on port 443...");
-console.log("WebRTC Page is up!");
+console.log("SERVER: HTTP redirecting to HTTPS on port 443...");
+console.log("SERVER: WebRTC Page is up!");
