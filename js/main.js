@@ -6,7 +6,6 @@ const connectButton = document.querySelector('button#connect');
 const requestImageButton = document.querySelector('button#reqImage');
 const saveImageButton = document.querySelector('button#saveImage');
 const stopVideoButton = document.querySelector('button#stopVideo');
-const getFeedbackButton = document.querySelector('button#getFeedback');
 const applyConstraintsButton = document.querySelector('button#applyConstraints');
 const showPatternButton = document.querySelector('button#showPattern');
 
@@ -15,7 +14,6 @@ connectButton.onclick = connect;
 requestImageButton.onclick = requestImage;
 saveImageButton.onclick = saveImage;
 stopVideoButton.onclick = stopVideo;
-getFeedbackButton.onclick = getFeedback;
 applyConstraintsButton.onclick = applyDesiredConstraints;
 showPatternButton.onclick = showPattern;
 
@@ -54,8 +52,8 @@ var standardConstraints =
     {
         deviceId:               "",
 
-        width:                  {   min: 320,   exact: 640,     max: 1920   },
-        height:                 {   min: 240,   exact: 480,     max: 1080   },
+        width:                  {   min: 320,   ideal: 640,     max: 1920   },
+        height:                 {   min: 240,   ideal: 480,     max: 1080   },
         frameRate:              {   min: 0,     ideal: 30,      max: 60     },
 
         facingMode:             {   ideal: "user"                           }
@@ -379,6 +377,8 @@ function bindStreamToCanvas(stream)
         imgContextH = feed.videoHeight;
         console.log('CLIENT: gotStream with width and height -> ', imgContextW, imgContextH);
     };
+
+    return stream;
 }
 
 function startVideo()
@@ -388,7 +388,6 @@ function startVideo()
     navigator.mediaDevices.getUserMedia(standardConstraints).then(gotStream).then(bindStreamToCanvas).catch(handleError);
 
     stopVideoButton.disabled = false;
-    getFeedbackButton.disabled = false;
 }
 
 function stopVideo()
@@ -396,7 +395,6 @@ function stopVideo()
     requestImageButton.disabled = true;
     saveImageButton.disabled = true;
     stopVideoButton.disabled = true;
-    getFeedbackButton.disabled = true;
     applyConstraintsButton.disabled = true;
 
     selectStream.getTracks().forEach(track => { track.stop(); });
@@ -411,11 +409,9 @@ function requestImage()
 
 function sendImage()
 {
-    var settings = selectTrack.getSettings();
-    
-    imgCanvas.setAttribute("height", settings.height);
-    imgCanvas.setAttribute("width", settings.width);
-    imgCanvas.getContext('2d').drawImage(localVideoCanvas, 0, 0, settings.width, settings.height);
+    imgCanvas.setAttribute("height", imgContextH);
+    imgCanvas.setAttribute("width", imgContextW);
+    imgCanvas.getContext('2d').drawImage(localVideoCanvas, 0, 0, imgContextW, imgContextH);
     
     // Split data channel message in chunks of this byte length.
     var CHUNK_LEN = 64000;
@@ -469,7 +465,7 @@ function saveImage()
 function showPattern()
 {
     var pattern = document.createElement('img');
-    pattern.setAttribute('src', 'images/sin-pattern_2048x2048.png');
+    pattern.setAttribute('src', 'images/sin-pattern_f100_2048x1536.png');
     pattern.style.cssText = 'max-width: none;'
     pattern.addEventListener("click", function()
     {
@@ -508,17 +504,18 @@ function renderIncomingPhoto(data)
     context.putImageData(img, 0, 0);
 }
 
-function getFeedback()
+function getFeedback(stream)
 {
-    var settings = selectTrack.getSettings();
+    let constraints = stream.getVideoTracks()[0].getConstraints();
+    console.log(`CLIENT: Track 1 current constraints ->`, constraints);
+
+    let settings = stream.getVideoTracks()[0].getSettings();
     console.log(`CLIENT: Track 1 current settings ->`, settings);
     settingsDiv.textContent = JSON.stringify(settings, null, '    ');
 
-    var capabilities = selectTrack.getCapabilities();
+    let capabilities = stream.getVideoTracks()[0].getCapabilities();
     console.log(`CLIENT: Track 1 current capabilities ->`, capabilities);
     capabilitiesDiv.textContent = JSON.stringify(capabilities, null, '    ');
-
-    applyConstraintsButton.disabled = false;
 
     // Using settings and capabilities to modify on-page controls
     if ('exposureMode' in capabilities)
@@ -530,7 +527,7 @@ function getFeedback()
     {
         console.log('CLIENT: Exposure control is not supported by ' + selectTrack.label);
     }
-    
+
     if ('exposureCompensation' in capabilities)
     {
         expSlider.min = capabilities.exposureCompensation.min;
@@ -543,7 +540,7 @@ function getFeedback()
     {
         console.log('CLIENT: Exposure settings are not supported by ' + selectTrack.label);
     }
-    
+
     if ('focusMode' in capabilities)
     {
         if (settings.focusMode === 'continuous')        { focusSelector[0].checked = true; }
@@ -553,20 +550,33 @@ function getFeedback()
     {
         console.log('CLIENT: Focus control is not supported by ' + selectTrack.label);
     }
+
     
-    /*
-    focusSlider.min = ?;
-    focusSlider.value = ?;
-    focusSlider.max = ?;
-    focusSlider.step = ?;
-    focusValue.innerHTML = focusSlider.value;
-    
-    whtBalSlider.min = ?;
-    whtBalSlider.value = ?;
-    whtBalSlider.max = ?;
-    whtBalSlider.step = ?;
-    whtBalValue.innerHTML = whtBalSlider.value;
-    */
+    // if ('focusCompensation' in capabilities)
+    // {
+    //     focusSlider.min = ?;
+    //     focusSlider.value = ?;
+    //     focusSlider.max = ?;
+    //     focusSlider.step = ?;
+    //     focusValue.innerHTML = focusSlider.value;
+    // }
+    // else
+    // {
+    //     console.log('CLIENT: Focus control is not supported by ' + selectTrack.label);
+    // }
+
+    // if ('focusCompensation' in capabilities)
+    // {
+    //     whtBalSlider.min = ?;
+    //     whtBalSlider.value = ?;
+    //     whtBalSlider.max = ?;
+    //     whtBalSlider.step = ?;
+    //     whtBalValue.innerHTML = whtBalSlider.value;
+    // }
+    // else
+    // {
+    //     console.log('CLIENT: White balance adjustment is not supported by ' + selectTrack.label);
+    // }
 
     if ('zoom' in capabilities)
     {
@@ -580,6 +590,8 @@ function getFeedback()
     {
         console.log('CLIENT: Zoom is not supported by ' + selectTrack.label);
     }
+
+    applyConstraintsButton.disabled = false;
 }
 
 function applyDesiredConstraints()
@@ -625,10 +637,12 @@ function logError(err)
 
 // Initial gUM scan
 navigator.mediaDevices.getUserMedia({ audio: false, video: true }).catch(handleError);
-navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(startVideo).catch(handleError);
-console.log(`CLIENT : Video sources -> `, videoInputSources);
 
 let supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+
+navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(startVideo).catch(handleError);
+
+console.log(`CLIENT : Video sources -> `, videoInputSources);
 console.log(`CLIENT : Supported constraints -> `, supportedConstraints)
 
 if (location.hostname.match(/localhost|127\.0\.0/))
