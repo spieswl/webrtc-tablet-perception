@@ -1,6 +1,6 @@
 # webrtc-perception - v0.0.0
 
-`webrtc-perception` can be though of as a "metapackage" which includes several, work-in-progress code bundles that seek to leverage WebRTC to facilitate computational photography, photogrammetry, and modeling tasks. This project is 
+`webrtc-perception` can be though of as a "metapackage" which includes several, work-in-progress code bundles that seek to leverage WebRTC to facilitate computational photography, photogrammetry, and modeling tasks. This project is under heavy development, and things will change and break at irregular intervals (as the developers' time is split between this and other active projects in the lab). ***For now, your mileage may vary!***
 
 ## Architecture
 
@@ -29,4 +29,4 @@ Second, you will need to have your own SSL certificate handy, as WebRTC's `getUs
 
 ## Acknowledgements
 
-* This project is led by [William Spies](http://) (MS Robotics, Northwestern University) and Kai Yeh (PhD Computer Science, Northwestern University) with the assistance of Dr. Florian Willomitzer, Dr. Oliver Cossairt, and others from the [Computational Photography Lab](http://compphotolab.northwestern.edu/) at Northwestern University.
+* This project is led by [William Spies](https://spieswl.github.io/) (MS Robotics, Northwestern University) and [Kai Yeh](https://github.com/kaiyeh0913) (PhD Computer Science, Northwestern University) with the assistance of Dr. Florian Willomitzer, Dr. Oliver Cossairt, and others from the [Computational Photography Lab](http://compphotolab.northwestern.edu/) at Northwestern University.
