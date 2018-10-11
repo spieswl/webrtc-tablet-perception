@@ -1,6 +1,6 @@
 # webrtc-perception - v0.0.0
 
-`webrtc-perception` can be though of as a "metapackage" which includes several, work-in-progress code bundles that seek to leverage WebRTC to facilitate computational photography, photogrammetry, and modeling tasks. This project is under heavy development, and things will change and break at irregular intervals (as the developers' time is split between this and other active projects in the lab). ***For now, your mileage may vary!***
+`webrtc-perception` can be thought of as a "metapackage" which includes several work-in-progress code bundles that seek to leverage WebRTC to facilitate computational photography, photogrammetry, and modeling tasks, among other things. This project is under heavy development, and things will change and break at irregular intervals (as the developers' time is split between this and other active projects in the lab). ***For now, your mileage may vary!***
 
 ## Architecture
 
