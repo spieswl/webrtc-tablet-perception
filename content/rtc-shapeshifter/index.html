@@ -16,7 +16,7 @@
 
     <base target="_blank">
 
-    <title>Northwestern CPL WebRTC Testing</title>
+    <title>Northwestern CPL WebRTC : Shapeshifter</title>
 
     <link rel="icon" sizes="192x192" href="../../images/webrtc-icon-192x192.png">
     <link href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet" type="text/css">
@@ -27,38 +27,22 @@
 <body>
 <div id="container">
 
-    <h1><span>WebRTC Client-to-Client Link</span></h1>
+    <h1><span>Shapeshifter</span></h1>
     <p>
-        Note that the video will be forced to capture at 640x480 on this site.
+        Particular: Rear camera, locked at 640x480, 
     </p>
 
     <div class="buttons">
         <div id="buttonsLeft">
-            <button id="startVideo">Start Video</button>
             <button id="connect" disabled>Connect</button>
-            <button id="stopVideo" disabled>Stop Video</button>
-        </div>
-    </div>
-    <div class="buttons">
-        <div id="buttonsLeft">
-            <button id="reqImage" disabled>Request Image</button>
-            <button id="saveImage" disabled>Save Image</button>
+            <button id="startSequence" disabled>Start Sequence</button>
         </div>
         <div id="buttonsRight">
-            <button id="applyConstraints" disabled>Apply Settings</button>
-        </div>
-    </div>
-    <div class="buttons">
-        <div id="buttonsLeft">
-            <button id="showPattern">Show Pattern</button>
+                <button id="applyConstraints" disabled>Apply Settings</button>
         </div>
     </div>
 
     <section>
-        <div class="feedArray" style="text-align: center;">
-            Local Camera 1 (User-Facing)<br>
-            <video id="outFeed" playsinline autoplay muted></video><br>
-        </div>
         <div class="feedArray" style="text-align: center;">
             Remote Camera 1 (User-Facing)<br>
             <video id="inFeed" playsinline autoplay muted></video><br>
@@ -122,6 +106,7 @@
 
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 <script src="/socket.io/socket.io.js"></script>
+<script src="js/webrtc.js" async></script>
 <script src="js/main.js" async></script>
 
 </body>

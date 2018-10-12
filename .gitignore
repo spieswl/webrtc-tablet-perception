@@ -2,8 +2,6 @@ other/
 
 content/rtc-deflectometry/certs/
 content/rtc-deflectometry/node_modules/
-content/rtc-deflectometry/package-lock.json
 
 content/rtc-shapeshifter/certs/
 content/rtc-shapeshifter/node_modules/
-content/rtc-shapeshifter/package-lock.json
