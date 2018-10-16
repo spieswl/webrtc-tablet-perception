@@ -7,7 +7,7 @@ function createPeerConnection(isInitiator, config)
     console.log('CLIENT: Creating Peer connection as initiator?', isInitiator, 'Config?', config);
     peerConn = new RTCPeerConnection(config);
 
-    peerConn.addTrack(selectedTrack, selectedStream);
+    peerConn.addTrack(localStream.getVideoTracks()[0], localStream);
 
     // Send any ICE candidates to the other peer
     peerConn.onicecandidate = function(event)
@@ -50,9 +50,11 @@ function createPeerConnection(isInitiator, config)
 
     peerConn.ontrack = function(event)
     {
+        remoteStream = event.streams[0];
+
         if(!remoteVideoCanvas.srcObject)
         {
-            remoteVideoCanvas.srcObject = event.streams[0];
+            remoteVideoCanvas.srcObject = remoteStream;
         }
         else return;
     };

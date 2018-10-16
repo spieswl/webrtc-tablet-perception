@@ -16,6 +16,7 @@ const expValue = document.querySelector('output[id="expSetValue"]');
 const focusSelector = document.getElementsByName('focusCtrl');
 const focusSlider = document.querySelector('input[name="focusSet"]');
 const focusValue = document.querySelector('output[id="focusSetValue"]');
+const whtBalSelector = document.getElementsByName('whtBalCtrl');
 const whtBalSlider = document.querySelector('input[name="whtBalSet"]');
 const whtBalValue = document.querySelector('output[id="whtBalSetValue"]');
 const zoomSlider = document.querySelector('input[name="zoomSet"]');
@@ -24,8 +25,9 @@ const zoomValue = document.querySelector('output[id="zoomSetValue"]');
 // WebRTC features & elements
 var supportedDevices = [];
 var supportedConstraints;
-var selectedStream;
-var selectedTrack;
+
+var localStream;
+var remoteStream;
 
 var standardConstraints = 
 {
@@ -45,13 +47,13 @@ var imgContextW = 640;
 var imgContextH = 480;
 
 // Displayed page elements
+var localVideoCanvas = document.createElement('video');
 var remoteVideoCanvas = document.querySelector('video#inFeed');
-var imgCanvas = document.createElement('canvas');
-var imgLink = document.createElement('a');
-var incomingImgs = document.querySelector('div#incomingImages');
+var remoteImgs = document.querySelector('div#remoteImages');
+var newImgLink = document.createElement('a');
+var newImgCanvas = document.createElement('canvas');
+
 var overlayDivs = [];
-var settingsDiv = document.querySelector('div#camSettings');
-var capabilitiesDiv = document.querySelector('div#camCapabilities');
 
 // Networking elements
 var configuration = null;
@@ -179,7 +181,7 @@ function connect()
 
 function startVideo()
 {
-    navigator.mediaDevices.getUserMedia(standardConstraints).then(gotStream).then(getFeedback).catch(handleError);
+    navigator.mediaDevices.getUserMedia(standardConstraints).then(gotStream).catch(handleError);
 }
 
 function stopVideo()
@@ -201,19 +203,19 @@ function populateDeviceList(devices)
 
 function gotStream(stream)
 {
-    selectedStream = stream;
-    selectedTrack = stream.getVideoTracks()[0];
+    localStream = stream;
     
-    console.log(`CLIENT: Stream listing ->`, selectedStream);
-    console.log(`CLIENT: Track listing ->`, selectedTrack);
-    
-    selectedStream.onloadedmetadata = function()
-    {
-        console.log(`CONSOLE: Track capabilities ->`, selectedTrack.getCapabilities());
-        console.log(`CONSOLE: Track settings ->`, selectedTrack.getSettings());
-    }
+    console.log(`CLIENT: Local stream listing ->`, localStream);
+    console.log(`CLIENT: Local track listing ->`, localStream.getVideoTracks()[0]);
 
-    return selectedStream;
+    localVideoCanvas.srcObject = localStream;
+
+    localVideoCanvas.addEventListener('loadedmetadata', (e) =>
+    {
+        window.setTimeout(() => (getFeedback(localStream)), 500);
+    });
+
+    return localStream;
 }
 
 function startSequence()
@@ -271,7 +273,7 @@ function renderIncomingPhoto(data)
     canvas.width = imgContextW;
     canvas.height = imgContextH;
     canvas.classList.add('incomingImages');
-    incomingImgs.insertBefore(canvas, incomingImgs.firstChild);
+    remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
     
     var context = canvas.getContext('2d');
     var img = context.createImageData(imgContextW, imgContextH);
@@ -281,36 +283,41 @@ function renderIncomingPhoto(data)
 
 function saveImage()
 {
-    let newestImg = incomingImgs.getElementsByTagName('canvas')[0];
+    let newestImg = remoteImgs.getElementsByTagName('canvas')[0];
     let dataURL = newestImg.toDataURL('image/png').replace("image/png", "image/octet-stream");
 
-    imgLink.href = dataURL;
-    imgLink.download = "cam1_image.png";
-    imgLink.click();
+    newImgLink.href = dataURL;
+    newImgLink.download = "cam1_image.png";
+    newImgLink.click();
 }
 
 function getFeedback(stream)
 {
-    let constraints = stream.getVideoTracks()[0].getConstraints();
-    console.log(`CLIENT: Current local track constraints ->`, constraints);
+    let track = stream.getVideoTracks()[0];
 
-    let settings = stream.getVideoTracks()[0].getSettings();
-    console.log(`CLIENT: Current local track settings ->`, settings);
-    settingsDiv.textContent = JSON.stringify(settings, null, '    ');
+    let constraints = track.getConstraints();
+    console.log(`CLIENT: Track constraints ->`, constraints);
 
-    let capabilities = stream.getVideoTracks()[0].getCapabilities();
-    console.log(`CLIENT: Current local track capabilities ->`, capabilities);
-    capabilitiesDiv.textContent = JSON.stringify(capabilities, null, '    ');
+    let settings = track.getSettings();
+    console.log(`CLIENT: Track settings ->`, settings);
+
+    let capabilities = track.getCapabilities();
+    console.log(`CLIENT: Track capabilities ->`, capabilities);
 
     // Using settings and capabilities to modify on-page controls
     if ('exposureMode' in capabilities)
     {
         if (settings.exposureMode === 'continuous')     { expSelector[0].checked = true; }
         else if (settings.exposureMode === 'manual')    { expSelector[1].checked = true; }
+
+        for (var k = 0; k < expSelector.length; k++)
+        {
+            expSelector[k].disabled = false;
+        }
     }
     else
     {
-        console.log('CLIENT: Exposure control is not supported by ' + selectedTrack.label);
+        console.log('CLIENT: Exposure control is not supported by ' + track.label);
     }
 
     if ('exposureCompensation' in capabilities)
@@ -320,48 +327,60 @@ function getFeedback(stream)
         expSlider.max = capabilities.exposureCompensation.max;
         expSlider.step = capabilities.exposureCompensation.step;
         expValue.innerHTML = expSlider.value;
+
+        expSlider.disabled = false;
     }
     else
     {
-        console.log('CLIENT: Exposure settings are not supported by ' + selectedTrack.label);
+        console.log('CLIENT: Exposure setting adjustment is not supported by ' + track.label);
     }
 
     if ('focusMode' in capabilities)
     {
         if (settings.focusMode === 'continuous')        { focusSelector[0].checked = true; }
-        else if (settings.focusMode === 'manual')       { focusSelector[1].checked = true; }
+        else if (settings.focusMode === 'single-shot')  { focusSelector[1].checked = true; }
+        else if (settings.focusMode === 'manual')       { focusSelector[2].checked = true; }
+
+        for (var k = 0; k < focusSelector.length; k++)
+        {
+            focusSelector[k].disabled = false;
+        }
     }
     else
     {
-        console.log('CLIENT: Focus control is not supported by ' + selectedTrack.label);
+        console.log('CLIENT: Focus control is not supported by ' + track.label);
     }
 
-    
-    // if ('focusCompensation' in capabilities)
-    // {
-    //     focusSlider.min = ?;
-    //     focusSlider.value = ?;
-    //     focusSlider.max = ?;
-    //     focusSlider.step = ?;
-    //     focusValue.innerHTML = focusSlider.value;
-    // }
-    // else
-    // {
-    //     console.log('CLIENT: Focus control is not supported by ' + selectedTrack.label);
-    // }
+    if ('focusCompensation' in capabilities)
+    {
+        focusSlider.min = capabilities.focusCompensation.min;
+        focusSlider.value = settings.focusCompensation.value;
+        focusSlider.max = capabilities.focusCompensation.max;
+        focusSlider.step = capabilities.focusCompensation.step;
+        focusValue.innerHTML = focusSlider.value;
 
-    // if ('focusCompensation' in capabilities)
-    // {
-    //     whtBalSlider.min = ?;
-    //     whtBalSlider.value = ?;
-    //     whtBalSlider.max = ?;
-    //     whtBalSlider.step = ?;
-    //     whtBalValue.innerHTML = whtBalSlider.value;
-    // }
-    // else
-    // {
-    //     console.log('CLIENT: White balance adjustment is not supported by ' + selectedTrack.label);
-    // }
+        focusSlider.disabled = false;
+    }
+    else
+    {
+        console.log('CLIENT: Focus compensation adjustment is not supported by ' + track.label);
+    }
+
+    if ('whiteBalanceMode' in capabilities)
+    {
+        if (settings.whiteBalanceMode === 'continuous')          { whtBalSelector[0].checked = true; }
+        else if (settings.whiteBalanceMode === 'single-shot')    { whtBalSelector[1].checked = true; }
+        else if (settings.whiteBalanceMode === 'manual')         { whtBalSelector[2].checked = true; }
+
+        for (var k = 0; k < whtBalSelector.length; k++)
+        {
+            whtBalSelector[k].disabled = false;
+        }
+    }
+    else
+    {
+        console.log('CLIENT: White balance adjustment is not supported by ' + track.label);
+    }
 
     if ('zoom' in capabilities)
     {
@@ -370,10 +389,12 @@ function getFeedback(stream)
         zoomSlider.max = capabilities.zoom.max;
         zoomSlider.step = capabilities.zoom.step;
         zoomValue.innerHTML = zoomSlider.value;
+
+        zoomSlider.disabled = false;
     }
     else
     {
-        console.log('CLIENT: Zoom is not supported by ' + selectedTrack.label);
+        console.log('CLIENT: Zoom is not supported by ' + track.label);
     }
 
     applyConstraintsButton.disabled = false;
@@ -381,13 +402,7 @@ function getFeedback(stream)
 
 function applyDesiredConstraints()
 {
-    console.log('CLIENT: Currently applied constraints ->', standardConstraints);
-    console.log('CLIENT: Currently loaded track capabilities ->', selectedTrack.getCapabilities());
-    console.log('CLIENT: Currently loaded track settings  ->', selectedTrack.getSettings());
-
-    /*
-    stopVideo();
-    */
+    console.log("TODO: NOT YET DEFINED.");
 }
 
 /////////////////////////////// UTILITY FUNCTIONS //////////////////////////////
@@ -426,7 +441,7 @@ navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(
     function()
     {
         supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-        console.log(`CLIENT : Supported constraints -> `, supportedConstraints);
+        console.log(`CLIENT : Locally supported constraints -> `, supportedConstraints);
 
         navigator.mediaDevices.enumerateDevices().then(populateDeviceList);
     }

@@ -89,6 +89,7 @@ div.buttons {
 div.feedArray {
     display: inline-block;
     max-width: 100%;
+    max-height: 100%;
     margin: 5px;
     padding: 5px;
 }
@@ -118,14 +119,6 @@ div#container {
 
 div#errorMsg p {
     color: #ff0000;
-}
-
-div#camSettings, div#camCapabilities {
-    vertical-align: top;
-    margin: 0 0 2em 0;
-    padding: 5px;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 h1 {
@@ -196,12 +189,20 @@ input[type=range]::-webkit-slider-thumb {
     cursor: pointer;
 }
 
+input[type=range][disabled]::-webkit-slider-thumb {
+    background: #616060;
+}
+
 input[type=range]::-moz-range-thumb {
     width: 25px;
     height: 25px;
     border-radius: 50%;
     background: #f15b15;
     cursor: pointer;
+}
+
+input[type=range][disabled]::-moz-range-thumb {
+    background: #616060;
 }
 
 p {
