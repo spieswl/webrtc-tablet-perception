@@ -28,7 +28,13 @@ var supportedConstraints;
 
 var localStream;
 var localImageCapture;
+var localConstraints;
+var localSettings;
+var localCapabilities;
 var remoteStream;
+var remoteConstraints;
+var remoteSettings;
+var remoteCapabilities;
 
 var imageSaveCount = 0;
 
@@ -182,7 +188,7 @@ function startVideo()
 
 function stopVideo()
 {
-    selectedStream.getTracks().forEach(track => { track.stop(); });
+    localStream.getTracks().forEach(track => { track.stop(); });
 }
 
 function populateDeviceList(devices)
@@ -224,10 +230,10 @@ function requestImage()
 
 function sendImage()
 {
-    var canvas = document.createElement('canvas');
-
     localImageCapture.grabFrame().then(imageBitmap =>
     {
+        // Local canvas for temporary image storage
+        var canvas = document.createElement('canvas');
         canvas.width = imageBitmap.width;
         canvas.height = imageBitmap.height;
         canvas.getContext('2d').drawImage(imageBitmap, 0, 0);
@@ -274,10 +280,11 @@ function sendImage()
 
 function renderIncomingPhoto(data)
 {
+    // Populating the Remote Image div
     var canvas = document.createElement('canvas');
     canvas.width = 640;
     canvas.height = 480;
-    canvas.classList.add('incomingImages');
+    canvas.classList.add('remoteImages');
     remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
     
     var context = canvas.getContext('2d');
@@ -285,11 +292,7 @@ function renderIncomingPhoto(data)
     img.data.set(data);
     context.putImageData(img, 0, 0);
 
-    saveImage();
-}
-
-function saveImage()
-{
+    // Saving the image
     let latestImg = remoteImgs.getElementsByTagName('canvas')[0];
     let dataURL = latestImg.toDataURL('image/png').replace("image/png", "image/octet-stream");
 
@@ -298,6 +301,7 @@ function saveImage()
     newImgLink.download = "cam1_image" + imageSaveCount + ".png";
     newImgLink.click();
 
+    // Update the global image counter (refreshes on load)
     imageSaveCount++;
 }
 
@@ -317,8 +321,8 @@ function getFeedback(stream)
     // Using settings and capabilities to modify on-page controls
     if ('exposureMode' in capabilities)
     {
-        if (settings.exposureMode === 'continuous')     { expSelector[0].checked = true; }
-        else if (settings.exposureMode === 'manual')    { expSelector[1].checked = true; }
+        if      (settings.exposureMode === 'continuous')    { expSelector[0].checked = true; }
+        else if (settings.exposureMode === 'manual')        { expSelector[1].checked = true; }
 
         for (var k = 0; k < expSelector.length; k++)
         {
@@ -338,6 +342,11 @@ function getFeedback(stream)
         expSlider.step = capabilities.exposureCompensation.step;
         expValue.innerHTML = expSlider.value;
 
+        expSlider.oninput = function(event)
+        {
+            expValue.innerHTML = event.target.value;
+        }
+
         expSlider.disabled = false;
     }
     else
@@ -347,7 +356,7 @@ function getFeedback(stream)
 
     if ('focusMode' in capabilities)
     {
-        if (settings.focusMode === 'continuous')        { focusSelector[0].checked = true; }
+        if      (settings.focusMode === 'continuous')   { focusSelector[0].checked = true; }
         else if (settings.focusMode === 'single-shot')  { focusSelector[1].checked = true; }
         else if (settings.focusMode === 'manual')       { focusSelector[2].checked = true; }
 
@@ -369,6 +378,11 @@ function getFeedback(stream)
         focusSlider.step = capabilities.focusCompensation.step;
         focusValue.innerHTML = focusSlider.value;
 
+        focusSlider.oninput = function(event)
+        {
+            focusValue.innerHTML = event.target.value;
+        }
+
         focusSlider.disabled = false;
     }
     else
@@ -378,9 +392,9 @@ function getFeedback(stream)
 
     if ('whiteBalanceMode' in capabilities)
     {
-        if (settings.whiteBalanceMode === 'continuous')          { whtBalSelector[0].checked = true; }
-        else if (settings.whiteBalanceMode === 'single-shot')    { whtBalSelector[1].checked = true; }
-        else if (settings.whiteBalanceMode === 'manual')         { whtBalSelector[2].checked = true; }
+        if      (settings.whiteBalanceMode === 'continuous')    { whtBalSelector[0].checked = true; }
+        else if (settings.whiteBalanceMode === 'manual')        { whtBalSelector[1].checked = true; }
+        else if (settings.whiteBalanceMode === 'none')          { whtBalSelector[2].checked = true; }
 
         for (var k = 0; k < whtBalSelector.length; k++)
         {
@@ -400,6 +414,11 @@ function getFeedback(stream)
         zoomSlider.step = capabilities.zoom.step;
         zoomValue.innerHTML = zoomSlider.value;
 
+        zoomSlider.oninput = function(event)
+        {
+            zoomValue.innerHTML = event.target.value;
+        }
+
         zoomSlider.disabled = false;
     }
     else
@@ -412,7 +431,42 @@ function getFeedback(stream)
 
 function applyDesiredConstraints()
 {
-    console.log("TODO: NOT YET DEFINED.");
+    var expToggle;
+    var focusToggle;
+    var whtBalToggle;
+
+    // Conditionals to check the status of the radio buttons before plugging them into the constraints applicator.
+    if      (document.getElementsByName('expCtrl')[0].checked)  { expToggle = "continuous"; }
+    else if (document.getElementsByName('expCtrl')[1].checked)  { expToggle = "manual";     }
+    else                                                        { expToggle = "";           }
+
+    if      (document.getElementsByName('focusCtrl')[0].checked)    { focusToggle = "continuous";   }
+    else if (document.getElementsByName('focusCtrl')[1].checked)    { focusToggle = "single-shot";       }
+    else if (document.getElementsByName('focusCtrl')[2].checked)    { focusToggle = "manual";       }
+    else                                                            { focusToggle = "";             }
+
+    if      (document.getElementsByName('whtBalCtrl')[0].checked)   { whtBalToggle = "continuous";  }
+    else if (document.getElementsByName('whtBalCtrl')[1].checked)   { whtBalToggle = "manual";      }
+    else                                                            { whtBalToggle = "";            }
+
+    let constraints =
+    {
+        advanced: 
+        [{
+                exposureMode:           expToggle,
+                exposureCompensation:   expSlider.value,
+                focusMode:              focusToggle,
+                whiteBalanceMode:       whtBalToggle,
+                zoom:                   zoomSlider.value
+        }]
+    }
+
+    let track = localStream.getVideoTracks()[0];
+    track.applyConstraints(constraints).then(function()
+    {
+        console.log('CLIENT: Newly applied constraints -> ', constraints);
+    })
+    .catch(handleError);
 }
 
 /////////////////////////////// UTILITY FUNCTIONS //////////////////////////////
@@ -447,15 +501,14 @@ function logError(err)
 //////////////////////// \/ INITIALIZER BEGINS HERE \/ /////////////////////////
 
 // Initial gUM scan
-navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(
-    function()
-    {
+navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function()
+{
         supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
         console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
 
         navigator.mediaDevices.enumerateDevices().then(populateDeviceList);
-    }
-).catch(handleError);
+})
+.catch(handleError);
 
 startVideo();
 
