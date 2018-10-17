@@ -11,8 +11,12 @@ applyConstraintsButton.onclick = applyDesiredConstraints;
 
 // Settings control elements
 const expSelector = document.getElementsByName('expCtrl');
-const expSlider = document.querySelector('input[name="expSet"]');
-const expValue = document.querySelector('output[id="expSetValue"]');
+const expCompSlider = document.querySelector('input[name="expCompSet"]');
+const expCompValue = document.querySelector('output[id="expCompValue"]');
+const expTimeSlider = document.querySelector('input[name="expTimeSet"]');
+const expTimeValue = document.querySelector('output[id="expTimeValue"]');
+const isoSlider = document.querySelector('input[name="expTimeSet"]');
+const isoValue = document.querySelector('output[id="expTimeValue"]');
 const focusSelector = document.getElementsByName('focusCtrl');
 const focusSlider = document.querySelector('input[name="focusSet"]');
 const focusValue = document.querySelector('output[id="focusSetValue"]');
@@ -318,7 +322,11 @@ function getFeedback(stream)
     let capabilities = track.getCapabilities();
     console.log(`CLIENT: Track capabilities ->`, capabilities);
 
-    // Using settings and capabilities to modify on-page controls
+    // Using settings and capabilities to modify on-page controls - not all controls are supported!!!
+    // You may add and remove these, as necessary. Make sure you update the constraints being passed
+    // to track.applyConstraints() in order to reflect the added (or removed) controls.
+
+    /* EXPOSURE CONTROL MODE */
     if ('exposureMode' in capabilities)
     {
         if      (settings.exposureMode === 'continuous')    { expSelector[0].checked = true; }
@@ -334,26 +342,61 @@ function getFeedback(stream)
         console.log('CLIENT: Exposure control is not supported by ' + track.label);
     }
 
+    /* ---------------------- EXPOSURE COMPENSATION SETTING --------------------- */
     if ('exposureCompensation' in capabilities)
     {
-        expSlider.min = capabilities.exposureCompensation.min;
-        expSlider.value = settings.exposureCompensation.value;
-        expSlider.max = capabilities.exposureCompensation.max;
-        expSlider.step = capabilities.exposureCompensation.step;
-        expValue.innerHTML = expSlider.value;
+        expCompSlider.min = capabilities.exposureCompensation.min;
+        expCompSlider.value = settings.exposureCompensation.value;
+        expCompSlider.max = capabilities.exposureCompensation.max;
+        expCompSlider.step = capabilities.exposureCompensation.step;
+        expCompValue.innerHTML = expCompSlider.value;
 
-        expSlider.oninput = function(event)
-        {
-            expValue.innerHTML = event.target.value;
-        }
+        expCompSlider.oninput = function(event) { expCompValue.innerHTML = event.target.value; }
 
-        expSlider.disabled = false;
+        expCompSlider.disabled = false;
     }
     else
     {
-        console.log('CLIENT: Exposure setting adjustment is not supported by ' + track.label);
+        console.log('CLIENT: Exposure compensation adjustment is not supported by ' + track.label);
     }
 
+    /* ------------------------- EXPOSURE TIME SETTING -------------------------- */
+    if ('exposureTime' in capabilities)
+    {
+        expTimeSlider.min = capabilities.exposureTime.min;
+        expTimeSlider.value = settings.exposureTime.value;
+        expTimeSlider.max = capabilities.exposureTime.max;
+        expTimeSlider.step = capabilities.exposureTime.step;
+        expTimeValue.innerHTML = expTimeSlider.value;
+
+        expTimeSlider.oninput = function(event) { expTimeValue.innerHTML = event.target.value; }
+
+        expTimeSlider.disabled = false;
+    }
+    else
+    {
+        console.log('CLIENT: Exposure time adjustment is not supported by ' + track.label);
+    }
+
+    /* ------------------------------- ISO SETTING ------------------------------ */
+    if ('iso' in capabilities)
+    {
+        isoSlider.min = capabilities.iso.min;
+        isoSlider.value = settings.iso.value;
+        isoSlider.max = capabilities.iso.max;
+        isoSlider.step = capabilities.iso.step;
+        isoValue.innerHTML = isoSlider.value;
+
+        isoSlider.oninput = function(event) { isoValue.innerHTML = event.target.value; }
+
+        isoSlider.disabled = false;
+    }
+    else
+    {
+        console.log('CLIENT: ISO adjustment is not supported by ' + track.label);
+    }
+
+    /* ------------------------- FOCUS CONTROL SELECTION ------------------------ */
     if ('focusMode' in capabilities)
     {
         if      (settings.focusMode === 'continuous')   { focusSelector[0].checked = true; }
@@ -370,26 +413,25 @@ function getFeedback(stream)
         console.log('CLIENT: Focus control is not supported by ' + track.label);
     }
 
-    if ('focusCompensation' in capabilities)
+    /* ------------------------- FOCUS DISTANCE SETTING ------------------------- */
+    if ('focusDistance' in capabilities)
     {
-        focusSlider.min = capabilities.focusCompensation.min;
-        focusSlider.value = settings.focusCompensation.value;
-        focusSlider.max = capabilities.focusCompensation.max;
-        focusSlider.step = capabilities.focusCompensation.step;
+        focusSlider.min = capabilities.focusDistance.min;
+        focusSlider.value = settings.focusDistance.value;
+        focusSlider.max = capabilities.focusDistance.max;
+        focusSlider.step = capabilities.focusDistance.step;
         focusValue.innerHTML = focusSlider.value;
 
-        focusSlider.oninput = function(event)
-        {
-            focusValue.innerHTML = event.target.value;
-        }
+        focusSlider.oninput = function(event) { focusValue.innerHTML = event.target.value; }
 
         focusSlider.disabled = false;
     }
     else
     {
-        console.log('CLIENT: Focus compensation adjustment is not supported by ' + track.label);
+        console.log('CLIENT: Focal distance adjustment is not supported by ' + track.label);
     }
 
+    /* ----------------------- WHITE BALANCE CONTROL MODE ----------------------- */
     if ('whiteBalanceMode' in capabilities)
     {
         if      (settings.whiteBalanceMode === 'continuous')    { whtBalSelector[0].checked = true; }
@@ -403,9 +445,28 @@ function getFeedback(stream)
     }
     else
     {
-        console.log('CLIENT: White balance adjustment is not supported by ' + track.label);
+        console.log('CLIENT: White balance control is not supported by ' + track.label);
     }
 
+    /* ----------------------- COLOR TEMPERATURE SETTING ------------------------ */
+    if ('colorTemperature' in capabilities)
+    {
+        colorTempSlider.min = capabilities.colorTemperature.min;
+        colorTempSlider.value = settings.colorTemperature.value;
+        colorTempSlider.max = capabilities.colorTemperature.max;
+        colorTempSlider.step = capabilities.colorTemperature.step;
+        colorTempValue.innerHTML = colorTempSlider.value;
+
+        colorTempSlider.oninput = function(event) { colorTempValue.innerHTML = event.target.value; }
+
+        colorTempSlider.disabled = false;
+    }
+    else
+    {
+        console.log('CLIENT: Color temperature adjustment is not supported by ' + track.label);
+    }
+
+     /* ----------------------------- ZOOM SETTING ------------------------------ */
     if ('zoom' in capabilities)
     {
         zoomSlider.min = capabilities.zoom.min;
@@ -414,10 +475,7 @@ function getFeedback(stream)
         zoomSlider.step = capabilities.zoom.step;
         zoomValue.innerHTML = zoomSlider.value;
 
-        zoomSlider.oninput = function(event)
-        {
-            zoomValue.innerHTML = event.target.value;
-        }
+        zoomSlider.oninput = function(event) { zoomValue.innerHTML = event.target.value; }
 
         zoomSlider.disabled = false;
     }
