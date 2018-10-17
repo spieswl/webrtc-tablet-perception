@@ -15,16 +15,16 @@ const expCompSlider = document.querySelector('input[name="expCompSet"]');
 const expCompValue = document.querySelector('output[id="expCompValue"]');
 const expTimeSlider = document.querySelector('input[name="expTimeSet"]');
 const expTimeValue = document.querySelector('output[id="expTimeValue"]');
-const isoSlider = document.querySelector('input[name="expTimeSet"]');
-const isoValue = document.querySelector('output[id="expTimeValue"]');
+const isoSlider = document.querySelector('input[name="isoSet"]');
+const isoValue = document.querySelector('output[id="isoValue"]');
 const focusSelector = document.getElementsByName('focusCtrl');
-const focusSlider = document.querySelector('input[name="focusSet"]');
-const focusValue = document.querySelector('output[id="focusSetValue"]');
+const focusSlider = document.querySelector('input[name="focusDistSet"]');
+const focusValue = document.querySelector('output[id="focusDistValue"]');
 const whtBalSelector = document.getElementsByName('whtBalCtrl');
-const whtBalSlider = document.querySelector('input[name="whtBalSet"]');
-const whtBalValue = document.querySelector('output[id="whtBalSetValue"]');
+const colorTempSlider = document.querySelector('input[name="colorTempSet"]');
+const colorTempValue = document.querySelector('output[id="colorTempValue"]');
 const zoomSlider = document.querySelector('input[name="zoomSet"]');
-const zoomValue = document.querySelector('output[id="zoomSetValue"]');
+const zoomValue = document.querySelector('output[id="zoomValue"]');
 
 // WebRTC features & elements
 var supportedDevices = [];
@@ -238,9 +238,9 @@ function sendImage()
     {
         // Local canvas for temporary image storage
         var canvas = document.createElement('canvas');
-        canvas.width = imageBitmap.width;
-        canvas.height = imageBitmap.height;
-        canvas.getContext('2d').drawImage(imageBitmap, 0, 0);
+        canvas.width = 640;     // imageBitmap.width;
+        canvas.height = 480;    // imageBitmap.height;
+        canvas.getContext('2d').drawImage(imageBitmap, 0, 0, 640, 480);
 
         // Split data channel message in chunks of this byte length.
         var CHUNK_LEN = 64000;
@@ -357,6 +357,7 @@ function getFeedback(stream)
     }
     else
     {
+        expCompSlider.value = 0;
         console.log('CLIENT: Exposure compensation adjustment is not supported by ' + track.label);
     }
 
@@ -375,6 +376,7 @@ function getFeedback(stream)
     }
     else
     {
+        expTimeSlider.value = 0;
         console.log('CLIENT: Exposure time adjustment is not supported by ' + track.label);
     }
 
@@ -393,6 +395,7 @@ function getFeedback(stream)
     }
     else
     {
+        isoSlider.value = 0;
         console.log('CLIENT: ISO adjustment is not supported by ' + track.label);
     }
 
@@ -428,6 +431,7 @@ function getFeedback(stream)
     }
     else
     {
+        focusSlider.value = 0;
         console.log('CLIENT: Focal distance adjustment is not supported by ' + track.label);
     }
 
@@ -451,10 +455,10 @@ function getFeedback(stream)
     /* ----------------------- COLOR TEMPERATURE SETTING ------------------------ */
     if ('colorTemperature' in capabilities)
     {
-        colorTempSlider.min = capabilities.colorTemperature.min;
-        colorTempSlider.value = settings.colorTemperature.value;
-        colorTempSlider.max = capabilities.colorTemperature.max;
-        colorTempSlider.step = capabilities.colorTemperature.step;
+        colorTempSlider.min = 2500;
+        colorTempSlider.value = 5500;
+        colorTempSlider.max = 10000;
+        colorTempSlider.step = 100;
         colorTempValue.innerHTML = colorTempSlider.value;
 
         colorTempSlider.oninput = function(event) { colorTempValue.innerHTML = event.target.value; }
@@ -463,6 +467,7 @@ function getFeedback(stream)
     }
     else
     {
+        colorTempSlider.value = 0;
         console.log('CLIENT: Color temperature adjustment is not supported by ' + track.label);
     }
 
@@ -481,6 +486,7 @@ function getFeedback(stream)
     }
     else
     {
+        zoomSlider.value = 0;
         console.log('CLIENT: Zoom is not supported by ' + track.label);
     }
 
@@ -512,9 +518,13 @@ function applyDesiredConstraints()
         advanced: 
         [{
                 exposureMode:           expToggle,
-                exposureCompensation:   expSlider.value,
+                exposureCompensation:   expCompSlider.value,
+                //exposureTime:           expTimeSlider.value,
+                //iso:                    isoSlider.value,
                 focusMode:              focusToggle,
+                //focusDistance:          focusSlider.value,
                 whiteBalanceMode:       whtBalToggle,
+                //colorTemperature:       2500,    // colorTempSlider.value,
                 zoom:                   zoomSlider.value
         }]
     }
@@ -523,6 +533,11 @@ function applyDesiredConstraints()
     track.applyConstraints(constraints).then(function()
     {
         console.log('CLIENT: Newly applied constraints -> ', constraints);
+
+        // Updated details
+        console.log(`CLIENT: Updated track constraints ->`, track.getConstraints());
+        console.log(`CLIENT: Updated track settings ->`, track.getSettings());
+        console.log(`CLIENT: Updated track capabilities ->`, track.getCapabilities());
     })
     .catch(handleError);
 }
