@@ -2,11 +2,11 @@
 
 // Button elements
 const connectButton = document.querySelector('button#connect');
-const startSequenceButton = document.querySelector('button#startSequence');
+const requestImageButton = document.querySelector('button#requestImage');
 const applyConstraintsButton = document.querySelector('button#applyConstraints');
 
 connectButton.onclick = connect;
-startSequenceButton.onclick = startSequence;
+requestImageButton.onclick = requestImage;
 applyConstraintsButton.onclick = applyDesiredConstraints;
 
 // Settings control elements
@@ -27,7 +27,10 @@ var supportedDevices = [];
 var supportedConstraints;
 
 var localStream;
+var localImageCapture;
 var remoteStream;
+
+var imageSaveCount = 0;
 
 var standardConstraints = 
 {
@@ -43,17 +46,10 @@ var standardConstraints =
         facingMode:             {   ideal: "environment"                    }
     }
 };
-var imgContextW = 640;
-var imgContextH = 480;
 
 // Displayed page elements
-var localVideoCanvas = document.createElement('video');
 var remoteVideoCanvas = document.querySelector('video#inFeed');
 var remoteImgs = document.querySelector('div#remoteImages');
-var newImgLink = document.createElement('a');
-var newImgCanvas = document.createElement('canvas');
-
-var overlayDivs = [];
 
 // Networking elements
 var configuration = null;
@@ -204,91 +200,105 @@ function populateDeviceList(devices)
 function gotStream(stream)
 {
     localStream = stream;
-    
-    console.log(`CLIENT: Local stream listing ->`, localStream);
-    console.log(`CLIENT: Local track listing ->`, localStream.getVideoTracks()[0]);
 
-    localVideoCanvas.srcObject = localStream;
-
-    localVideoCanvas.addEventListener('loadedmetadata', (e) =>
+    var tempLocalVideo = document.createElement('video');
+    tempLocalVideo.srcObject = localStream;
+    tempLocalVideo.addEventListener('loadedmetadata', (e) =>
     {
         window.setTimeout(() => (getFeedback(localStream)), 500);
     });
 
+    localImageCapture = new ImageCapture(localStream.getVideoTracks()[0]);
+
+    console.log(`CLIENT: Local stream listing ->`, localStream);
+    console.log(`CLIENT: Local track listing ->`, localStream.getVideoTracks()[0]);
+    console.log(`CLIENT: Local image capture ->`, localImageCapture);
+
     return localStream;
 }
 
-function startSequence()
+function requestImage()
 {
-    console.log("TODO: NOT YET DEFINED.");
+    socket.emit('imagerequest');
 }
 
 function sendImage()
 {
-    imgCanvas.setAttribute("height", imgContextH);
-    imgCanvas.setAttribute("width", imgContextW);
-    imgCanvas.getContext('2d').drawImage(localVideoCanvas, 0, 0, imgContextW, imgContextH);
-    
-    // Split data channel message in chunks of this byte length.
-    var CHUNK_LEN = 64000;
-    var img = imgCanvas.getContext('2d').getImageData(0, 0, imgContextW, imgContextH);
-    var len = img.data.byteLength;
-    var n = len / CHUNK_LEN | 0;
-    
-    console.log('CLIENT: Sending a total of ' + len + ' byte(s).');
-    
-    if (!dataChannel)
+    var canvas = document.createElement('canvas');
+
+    localImageCapture.grabFrame().then(imageBitmap =>
     {
-        logError('ERROR: Connection has not been initiated. Get two peers in the same room first!');
-        return;
-    }
-    else if (dataChannel.readyState === 'closed')
-    {
-        logError('ERROR: Connection was lost. Peer closed the connection.');
-        return;
-    }
+        canvas.width = imageBitmap.width;
+        canvas.height = imageBitmap.height;
+        canvas.getContext('2d').drawImage(imageBitmap, 0, 0);
+
+        // Split data channel message in chunks of this byte length.
+        var CHUNK_LEN = 64000;
+        var img = canvas.getContext('2d').getImageData(0, 0, 640, 480);
+        var len = img.data.byteLength;
+        var n = len / CHUNK_LEN | 0;
     
-    dataChannel.send(len);
+        console.log('CLIENT: Sending a total of ' + len + ' byte(s).');
     
-    // Split the photo and send in chunks of about 64KB
-    for (var i = 0; i < n; i++)
-    {
-        var start = i * CHUNK_LEN,
-        end = (i + 1) * CHUNK_LEN;
-        console.log('CLIENT: ' + start + ' - ' + (end - 1));
-        dataChannel.send(img.data.subarray(start, end));
-    }
+        if (!dataChannel)
+        {
+            logError('ERROR: Connection has not been initiated. Get two peers in the same room first!');
+            return;
+        }
+        else if (dataChannel.readyState === 'closed')
+        {
+            logError('ERROR: Connection was lost. Peer closed the connection.');
+            return;
+        }
     
-    // Send the remainder, if any
-    if (len % CHUNK_LEN)
-    {
-        console.log('CLIENT: Last ' + len % CHUNK_LEN + ' byte(s).');
-        dataChannel.send(img.data.subarray(n * CHUNK_LEN));
-    }
+        dataChannel.send(len);
+    
+        // Split the photo and send in chunks of about 64KB
+        for (var i = 0; i < n; i++)
+        {
+            var start = i * CHUNK_LEN,
+            end = (i + 1) * CHUNK_LEN;
+            console.log('CLIENT: ' + start + ' - ' + (end - 1));
+            dataChannel.send(img.data.subarray(start, end));
+        }
+    
+        // Send the remainder, if any
+        if (len % CHUNK_LEN)
+        {
+            console.log('CLIENT: Last ' + len % CHUNK_LEN + ' byte(s).');
+            dataChannel.send(img.data.subarray(n * CHUNK_LEN));
+        }
+    })
+    .catch(err => console.error('CLIENT: grabFrame() error ->', err));
 }
 
 function renderIncomingPhoto(data)
 {
     var canvas = document.createElement('canvas');
-    canvas.width = imgContextW;
-    canvas.height = imgContextH;
+    canvas.width = 640;
+    canvas.height = 480;
     canvas.classList.add('incomingImages');
     remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
     
     var context = canvas.getContext('2d');
-    var img = context.createImageData(imgContextW, imgContextH);
+    var img = context.createImageData(640, 480);
     img.data.set(data);
     context.putImageData(img, 0, 0);
+
+    saveImage();
 }
 
 function saveImage()
 {
-    let newestImg = remoteImgs.getElementsByTagName('canvas')[0];
-    let dataURL = newestImg.toDataURL('image/png').replace("image/png", "image/octet-stream");
+    let latestImg = remoteImgs.getElementsByTagName('canvas')[0];
+    let dataURL = latestImg.toDataURL('image/png').replace("image/png", "image/octet-stream");
 
+    let newImgLink = document.createElement('a');
     newImgLink.href = dataURL;
-    newImgLink.download = "cam1_image.png";
+    newImgLink.download = "cam1_image" + imageSaveCount + ".png";
     newImgLink.click();
+
+    imageSaveCount++;
 }
 
 function getFeedback(stream)
@@ -441,7 +451,7 @@ navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(
     function()
     {
         supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-        console.log(`CLIENT : Locally supported constraints -> `, supportedConstraints);
+        console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
 
         navigator.mediaDevices.enumerateDevices().then(populateDeviceList);
     }
