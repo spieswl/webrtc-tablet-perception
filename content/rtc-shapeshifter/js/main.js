@@ -326,7 +326,7 @@ function getFeedback(stream)
     // You may add and remove these, as necessary. Make sure you update the constraints being passed
     // to track.applyConstraints() in order to reflect the added (or removed) controls.
 
-    /* EXPOSURE CONTROL MODE */
+    /* -------------------------- EXPOSURE CONTROL MODE ------------------------- */
     if ('exposureMode' in capabilities)
     {
         if      (settings.exposureMode === 'continuous')    { expSelector[0].checked = true; }
@@ -455,10 +455,10 @@ function getFeedback(stream)
     /* ----------------------- COLOR TEMPERATURE SETTING ------------------------ */
     if ('colorTemperature' in capabilities)
     {
-        colorTempSlider.min = 2500;
-        colorTempSlider.value = 5500;
-        colorTempSlider.max = 10000;
-        colorTempSlider.step = 100;
+        colorTempSlider.min = capabilities.colorTemperature.min;
+        colorTempSlider.value = settings.colorTemperature.value;
+        colorTempSlider.max = capabilities.colorTemperature.max;
+        colorTempSlider.step = capabilities.colorTemperature.step;
         colorTempValue.innerHTML = colorTempSlider.value;
 
         colorTempSlider.oninput = function(event) { colorTempValue.innerHTML = event.target.value; }
@@ -471,7 +471,7 @@ function getFeedback(stream)
         console.log('CLIENT: Color temperature adjustment is not supported by ' + track.label);
     }
 
-     /* ----------------------------- ZOOM SETTING ------------------------------ */
+    /* ------------------------------ ZOOM SETTING ------------------------------ */
     if ('zoom' in capabilities)
     {
         zoomSlider.min = capabilities.zoom.min;
@@ -495,44 +495,63 @@ function getFeedback(stream)
 
 function applyDesiredConstraints()
 {
-    var expToggle;
-    var focusToggle;
-    var whtBalToggle;
+    let track = localStream.getVideoTracks()[0];
+    let newConstraints = { advanced: [{}] };
 
     // Conditionals to check the status of the radio buttons before plugging them into the constraints applicator.
-    if      (document.getElementsByName('expCtrl')[0].checked)  { expToggle = "continuous"; }
-    else if (document.getElementsByName('expCtrl')[1].checked)  { expToggle = "manual";     }
-    else                                                        { expToggle = "";           }
-
-    if      (document.getElementsByName('focusCtrl')[0].checked)    { focusToggle = "continuous";   }
-    else if (document.getElementsByName('focusCtrl')[1].checked)    { focusToggle = "single-shot";       }
-    else if (document.getElementsByName('focusCtrl')[2].checked)    { focusToggle = "manual";       }
-    else                                                            { focusToggle = "";             }
-
-    if      (document.getElementsByName('whtBalCtrl')[0].checked)   { whtBalToggle = "continuous";  }
-    else if (document.getElementsByName('whtBalCtrl')[1].checked)   { whtBalToggle = "manual";      }
-    else                                                            { whtBalToggle = "";            }
-
-    let constraints =
+    /* -------------- EXPOSURE CONTROL, COMPENSATION, TIME SETTINGS ------------- */
+    if (document.getElementsByName('expCtrl')[0].checked)
     {
-        advanced: 
-        [{
-                exposureMode:           expToggle,
-                exposureCompensation:   expCompSlider.value,
-                //exposureTime:           expTimeSlider.value,
-                //iso:                    isoSlider.value,
-                focusMode:              focusToggle,
-                //focusDistance:          focusSlider.value,
-                whiteBalanceMode:       whtBalToggle,
-                //colorTemperature:       2500,    // colorTempSlider.value,
-                zoom:                   zoomSlider.value
-        }]
+        newConstraints.advanced[0].exposureMode = "continuous";
+    }
+    else if (document.getElementsByName('expCtrl')[1].checked)
+    {
+        newConstraints.advanced[0].exposureMode = "manual";
+        newConstraints.advanced[0].exposureCompensation = expCompSlider.value;
     }
 
-    let track = localStream.getVideoTracks()[0];
-    track.applyConstraints(constraints).then(function()
+    /* ------------------------------- ISO SETTING ------------------------------ */
+    if (isoSlider.disabled === false)
     {
-        console.log('CLIENT: Newly applied constraints -> ', constraints);
+        newConstraints.advanced[0].iso = isoSlider.value;
+    }
+
+    /* -------------------- FOCUS CONTROL, DISTANCE SETTINGS -------------------- */
+    if (document.getElementsByName('focusCtrl')[0].checked)
+    {
+        newConstraints.advanced[0].focusMode = "continuous";
+    }
+    else if (document.getElementsByName('focusCtrl')[1].checked)
+    {
+        newConstraints.advanced[0].focusMode = "single-shot";
+    }
+    else if (document.getElementsByName('focusCtrl')[2].checked)
+    {
+        newConstraints.advanced[0].focusMode = "manual";
+        newConstraints.advanced[0].focusDistance = focusSlider.value;
+    }
+
+    /* ---------------- WHITE BALANCE, COLOR TEMPERATURE SETTINGS --------------- */
+    if (document.getElementsByName('whtBalCtrl')[0].checked)
+    {
+        newConstraints.advanced[0].whiteBalanceMode = "continuous";
+    }
+    else if (document.getElementsByName('whtBalCtrl')[1].checked)
+    {
+        newConstraints.advanced[0].whiteBalanceMode = "manual";
+        newConstraints.advanced[0].colorTemperature = colorTempSlider.value;
+    }
+
+    /* ------------------------------ ZOOM SETTING ------------------------------ */
+    if (zoomSlider.disabled === false)
+    {
+        newConstraints.advanced[0].zoom = zoomSlider.value;
+    }
+
+
+    track.applyConstraints(newConstraints).then(function()
+    {
+        console.log('CLIENT: Newly applied constraints -> ', newConstraints);
 
         // Updated details
         console.log(`CLIENT: Updated track constraints ->`, track.getConstraints());
@@ -579,11 +598,12 @@ navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function
         supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
         console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
 
-        navigator.mediaDevices.enumerateDevices().then(populateDeviceList);
+        navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(function()
+        {
+            startVideo();
+        });
 })
 .catch(handleError);
-
-startVideo();
 
 if (location.hostname.match(/localhost|127\.0\.0/))
 {
