@@ -25,6 +25,7 @@ const colorTempSlider = document.querySelector('input[name="colorTempSet"]');
 const colorTempValue = document.querySelector('output[id="colorTempValue"]');
 const zoomSlider = document.querySelector('input[name="zoomSet"]');
 const zoomValue = document.querySelector('output[id="zoomValue"]');
+const torchSelector = document.getElementsByName('torchCtrl');
 
 // WebRTC features & elements
 var supportedDevices = [];
@@ -201,7 +202,7 @@ function populateDeviceList(devices)
     {
         if (devices[k].kind === 'videoinput')   { supportedDevices.push(devices[k].deviceId); }
     }
-    console.log(`CLIENT : Supported video devices -> `, supportedDevices);
+    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log(`CLIENT : Supported video devices -> `, supportedDevices);
 
     // Update normal constraints with deviceID after the initial query
     standardConstraints.video.deviceId = supportedDevices[0];
@@ -220,9 +221,9 @@ function gotStream(stream)
 
     localImageCapture = new ImageCapture(localStream.getVideoTracks()[0]);
 
-    console.log(`CLIENT: Local stream listing ->`, localStream);
-    console.log(`CLIENT: Local track listing ->`, localStream.getVideoTracks()[0]);
-    console.log(`CLIENT: Local image capture ->`, localImageCapture);
+    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log(`CLIENT: Local stream listing ->`, localStream);
+    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log(`CLIENT: Local track listing ->`, localStream.getVideoTracks()[0]);
+    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log(`CLIENT: Local image capture ->`, localImageCapture);
 
     return localStream;
 }
@@ -490,6 +491,22 @@ function getFeedback(stream)
         console.log('CLIENT: Zoom is not supported by ' + track.label);
     }
 
+    /* ------------------------------ TORCH SETTING ----------------------------- */
+    if ('torch' in capabilities)
+    {
+        if      (settings.torch === false)  { torchSelector[0].checked = true; }
+        else if (settings.torch === true)   { torchSelector[1].checked = true; }
+
+        for (var k = 0; k < torchSelector.length; k++)
+        {
+            torchSelector[k].disabled = false;
+        }
+    }
+    else
+    {
+        console.log('CLIENT: Torch control is not supported by ' + track.label);
+    }
+
     applyConstraintsButton.disabled = false;
 }
 
@@ -546,6 +563,16 @@ function applyDesiredConstraints()
     if (zoomSlider.disabled === false)
     {
         newConstraints.advanced[0].zoom = zoomSlider.value;
+    }
+
+    /* ----------------------------- TORCH CONTROLS ----------------------------- */
+    if (document.getElementsByName('torchCtrl')[0].checked)
+    {
+        newConstraints.advanced[0].torch = "false";
+    }
+    else if (document.getElementsByName('torchCtrl')[1].checked)
+    {
+        newConstraints.advanced[0].torch = "true";
     }
 
 

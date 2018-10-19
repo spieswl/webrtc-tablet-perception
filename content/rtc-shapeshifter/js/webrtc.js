@@ -3,6 +3,9 @@
 /////////////////////////////// WEBRTC FUNCTIONS ///////////////////////////////
 
 function createPeerConnection(isInitiator, config)
+/**
+  * TODO: Add function description.
+  */
 {
     console.log('CLIENT: Creating Peer connection as initiator?', isInitiator, 'Config?', config);
     peerConn = new RTCPeerConnection(config);
@@ -50,17 +53,18 @@ function createPeerConnection(isInitiator, config)
 
     peerConn.ontrack = function(event)
     {
-        remoteStream = event.streams[0];
-
         if(!remoteVideoCanvas.srcObject)
         {
-            remoteVideoCanvas.srcObject = remoteStream;
+            remoteVideoCanvas.srcObject = remoteStream = event.streams[0];
         }
         else return;
     };
 }
 
 function onLocalSessionCreated(desc)
+/**
+  * TODO: Add function description.
+  */
 {
     console.log('CLIENT: Local session created ->', desc);
     peerConn.setLocalDescription(desc, function()
@@ -71,6 +75,9 @@ function onLocalSessionCreated(desc)
 }
 
 function onDataChannelCreated(channel)
+/**
+  * TODO: Add function description.
+  */
 {
     console.log('CLIENT: OnDataChannelCreated -> ', channel);
 
@@ -90,6 +97,9 @@ function onDataChannelCreated(channel)
 }
 
 function receiveDataChromeFactory()
+/**
+  * TODO: Add function description.
+  */
 {
     var buf, count;
   
@@ -118,6 +128,9 @@ function receiveDataChromeFactory()
 }
 
 function receiveDataFirefoxFactory()
+/**
+  * TODO: Add function description.
+  */
 {
     var count, total, parts;
 
