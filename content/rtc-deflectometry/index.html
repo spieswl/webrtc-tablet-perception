@@ -4,125 +4,121 @@
 -->
 <html>
 <head>
-
     <meta charset="utf-8">
-    <meta name="description" content="Northwestern CPL WebRTC Testing">
+    <meta name="description" content="Northwestern CPL WebRTC">
     <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
-    <meta itemprop="description" content="Northwestern CPL WebRTC Testing">
+    <meta itemprop="description" content="Northwestern CPL WebRTC">
     <meta itemprop="image" content="../../images/webrtc-icon-192x192.png">
-    <meta itemprop="name" content="Northwestern CPL WebRTC Testing">
+    <meta itemprop="name" content="Northwestern CPL WebRTC">
     <meta name="mobile-web-app-capable" content="yes">
     <meta id="theme-color" name="theme-color" content="#ffffff">
 
     <base target="_blank">
 
-    <title>Northwestern CPL WebRTC Testing</title>
+    <title>Northwestern CPL WebRTC : Deflectometry</title>
 
     <link rel="icon" sizes="192x192" href="../../images/webrtc-icon-192x192.png">
     <link href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet" type="text/css">
     <link rel="stylesheet" href="css/main.css">
-
 </head>
 
 <body>
-<div id="container">
+    <div id="container">
+        <h1><span>Deflectometry</span></h1>
+        <p>
+            Specifications: Front camera (if possible), locked to 640x480. Sinusoidal pattern consists of 20 cycles / period.
+        </p>
 
-    <h1><span>WebRTC Client-to-Client Link</span></h1>
-    <p>
-        Note that the video will be forced to capture at 640x480 on this site.
-    </p>
-
-    <div class="buttons">
-        <div id="buttonsLeft">
-            <button id="startVideo">Start Video</button>
-            <button id="connect" disabled>Connect</button>
-            <button id="stopVideo" disabled>Stop Video</button>
+        <div class="buttons">
+            <div id="buttonsLeft">
+                <button id="connect" disabled>Connect</button>
+                <button id="requestImage" disabled>Request Image</button>
+            </div>
+            <div id="buttonsRight">
+                <button id="applyConstraints" disabled>Apply Settings</button>
+            </div>
         </div>
+        <div class="buttons">
+            <div id="buttonsLeft">
+                <button id="showPattern">Show Pattern</button>
+            </div>
+        </div>
+
+        <section>
+            <div class="feedArray" style="text-align: center;">
+                Remote Camera 1 (User-Facing)<br>
+                <video id="inFeed" playsinline autoplay muted></video><br>
+            </div>
+            <div class="feedArray">
+                <strong>Camera 1 Settings</strong>
+                <div class="settings">
+                    <p>Exposure Control :</p>
+                    <input type="radio" name="expCtrl" id="continuous" disabled>Automatic Control<br>
+                    <input type="radio" name="expCtrl" id="manual" disabled>Manual Control
+                </div>
+            
+                <div class="settings">
+                    <p>Exposure Compensation : <output id="expCompValue" style="font-weight:bold"></output></p>
+                    <input name="expCompSet" type="range" min="" value="" max="" disabled>
+                </div>
+                
+                <div class="settings">
+                    <p>Exposure Time : <output id="expTimeValue" style="font-weight:bold"></output></p>
+                    <input name="expTimeSet" type="range" min="" value="" max="" disabled>
+                </div>
+            
+                <div class="settings">
+                    <p>ISO Setting : <output id="isoValue" style="font-weight:bold"></output></p>
+                    <input name="isoSet" type="range" min="" value="" max="" disabled>
+                </div>
+            
+                <div class="settings">
+                    <p>Focus Control :</p>
+                    <input name="focusCtrl" type="radio" id="continuous" disabled>Automatic Adjustment<br>
+                    <input name="focusCtrl" type="radio" id="single-shot" disabled>Single-Shot Adjustment<br>
+                    <input name="focusCtrl" type="radio" id="manual" disabled>Manual Adjustment
+                </div>
+            
+                <div class="settings">
+                    <p>Focus Distance : <output id="focusDistValue" style="font-weight:bold"></output></p>
+                    <input name="focusDistSet" type="range" min="" value="" max="" disabled>
+                </div>
+            
+                <div class="settings">
+                    <p>White Balance Control :</p>
+                    <input name="whtBalCtrl" type="radio" id="continuous" disabled>Automatic Adjustment<br>
+                    <input name="whtBalCtrl" type="radio" id="manual" disabled>Manual Adjustment<br>
+                    <input name="whtBalCtrl" type="radio" id="none" disabled>No Adjustment
+                </div>
+            
+                <div class="settings">
+                    <p>Color Temperature Setting : <output id="colorTempValue" style="font-weight:bold"></output></p>
+                    <input name="colorTempSet" type="range" min="" value="" max="" disabled>
+                </div>
+            
+                <div class="settings">
+                    <p>Zoom : <output id="zoomValue" style="font-weight:bold"></output></p>
+                    <input name="zoomSet" type="range" min="" value="" max="" disabled>
+                </div>
+            
+                <div class="settings">
+                    <p>Torch :</p>
+                    <input name="torchCtrl" type="radio" id="off" disabled>Torch OFF<br>
+                    <input name="torchCtrl" type="radio" id="on" disabled>Torch ON<br>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Remotely Transmitted Images</h2>
+            <div id="incomingImages"></div>
+        </section>
+
     </div>
-    <div class="buttons">
-        <div id="buttonsLeft">
-            <button id="reqImage" disabled>Request Image</button>
-            <button id="saveImage" disabled>Save Image</button>
-        </div>
-        <div id="buttonsRight">
-            <button id="applyConstraints" disabled>Apply Settings</button>
-        </div>
-    </div>
-    <div class="buttons">
-        <div id="buttonsLeft">
-            <button id="showPattern">Show Pattern</button>
-        </div>
-    </div>
 
-    <section>
-        <div class="feedArray" style="text-align: center;">
-            Local Camera 1 (User-Facing)<br>
-            <video id="outFeed" playsinline autoplay muted></video><br>
-        </div>
-        <div class="feedArray" style="text-align: center;">
-            Remote Camera 1 (User-Facing)<br>
-            <video id="inFeed" playsinline autoplay muted></video><br>
-        </div>
-    </section>
-    
-    <section>
-        <div class="feedArray">
-            <strong>Current Camera 1 Settings</strong><br>
-            <div id="camSettings" class="output"></div>
-        </div>
-        <div class="feedArray">
-            <strong>Available Camera 1 Capabilities</strong><br>
-            <div id="camCapabilities" class="output"></div>
-        </div>
-    </section>
-
-    <section>
-        <div class="half-size">
-            <strong>Desired Camera 1 Settings</strong>
-            <div class="settings">
-                <p>Exposure Control :</p>
-                <input type="radio" name="expCtrl" id="continuous" disabled>Automatic Exposure<br>
-                <input type="radio" name="expCtrl" id="manual" disabled>Manual Exposure
-            </div>
-
-            <div class="settings">
-                <p>Exposure Setting : <output id="expSetValue" style="font-weight:bold"></output></p>
-                <input name="expSet" type="range" min="" value="" max="" disabled>
-            </div>
-
-            <div class="settings">
-                <p>Focus Control :</p>
-                <input name="focusCtrl" type="radio" id="continuous" disabled>Automatic Focus Adjustment<br>
-                <input name="focusCtrl" type="radio" id="manual" disabled>Manual Focus Adjustment
-            </div>
-            <!--
-            <div class="settings">
-                <p>Focus Setting : <output id="focusSetValue" style="font-weight:bold"></output></p>
-                <input name="focusSet" type="range" min="" value="" max="" disabled>
-            </div>
-
-            <div class="settings">
-                <p>White Balance : <output id="whtBalSetValue" style="font-weight:bold"></output></p>
-                <input name="whtBalSet" type="range" min="" value="" max="" disabled>
-            </div>
-            -->
-            <div class="settings">
-                <p>Zoom : <output id="zoomSetValue" style="font-weight:bold"></output></p>
-                <input name="zoomSet" type="range" min="" value="" max="" disabled>
-            </div>
-        </div>
-    </section>
-
-    <section>
-        <h2>Remotely Transmitted Images</h2>
-        <div id="incomingImages"></div>
-    </section>
-
-</div>
-
-<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-<script src="/socket.io/socket.io.js"></script>
-<script src="js/main.js" async></script>
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/main.js" async></script>
 
 </body>
 </html>
