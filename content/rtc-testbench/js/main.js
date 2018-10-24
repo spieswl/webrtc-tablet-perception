@@ -1,25 +1,27 @@
 'use strict';
 
+// Special constants and variables
+var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+var phaseShift = 0;
+var patternInterval;
+
 // Button elements
-const showPatternButton = document.querySelector('button#cyclePattern');
-showPatternButton.onclick = function()
+const cyclePatternButton = document.querySelector('button#cyclePattern');
+cyclePatternButton.onclick = function()
 {
     enterFullscreenState();
-
-    showPattern(0, 10, phaseShift);
-
-    setInterval(cyclePattern, 2000);
+    initPattern();
+    patternInterval = setInterval(cyclePattern, 2000);
 }
 
 // Displayed page elements
-var pattern = document.createElement('canvas');
+var pattern;
+var overlay;
 
 // System-specific constants
-var effScreenWidth = window.screen.width * window.devicePixelRatio;
-var effScreenHeight = window.screen.height * window.devicePixelRatio;
-
-// Special constants
-var phaseShift = 0;
+var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
+var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio);
 
 
 ///////////////////////////// STANDARD FUNCTIONS ///////////////////////////////
@@ -29,7 +31,13 @@ function initPattern()
   * TODO: Add function description.
   */
 {
+    // Overlay setup
+    overlay = document.createElement('div');
+    overlay.setAttribute("id", "overlay");
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; height: 100%; width: 100%; z-index:100;';
+
     // Pattern setup
+    pattern = document.createElement('canvas');
     pattern.width = effScreenWidth;
     pattern.height = effScreenHeight;
     pattern.style.cssText = 'max-width: none; max-height: none';
@@ -39,9 +47,20 @@ function initPattern()
     {
         var cleaner = document.querySelector("div#overlay");
         cleaner.parentNode.removeChild(cleaner);
-
+        
         exitFullScreenState();
+
+        clearInterval(patternInterval);
     });
+
+    // Start out with a blank pattern
+    var patCtx = pattern.getContext('2d');
+    var patData = generateBlankPattern(patCtx, effScreenWidth, effScreenHeight);
+    patCtx.putImageData(patData, 0, 0);
+
+    overlay.appendChild(pattern);
+
+    document.body.appendChild(overlay);
 }
 
 function cyclePattern()
@@ -49,12 +68,9 @@ function cyclePattern()
   * TODO: Add function description.
   */
 {
-    phaseShift += (Math.PI / 2);
-
-    var cleaner = document.querySelector("div#overlay");
-    cleaner.removeChild(cleaner.firstChild);
-
     showPattern(0, 10, phaseShift);
+
+    phaseShift += (Math.PI / 2);
 }
 
 function showPattern(direction, frequency,  phaseShift)
@@ -65,19 +81,11 @@ function showPattern(direction, frequency,  phaseShift)
     var patCtx = pattern.getContext('2d');
     var patData;
     
-    if      (direction === 0)   { patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 10, 0); }
-    else if (direction === 1)   { patData = generateHorizontalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 10, 0); }
-    else                        { patData = patCtx.createImageData(effScreenWidth, effScreenHeight); }  // BLANK CANVAS
+    if      (direction === 0)   { patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
+    else if (direction === 1)   { patData = generateHorizontalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
+    else                        { patData = generateBlankPattern(patCtx, effScreenWidth, effScreenHeight); }
 
     patCtx.putImageData(patData, 0, 0);
-
-    // Apply the newly generated pattern, this assumes the overlay is going to be empty.
-    var overlay = document.createElement('div');
-    overlay.setAttribute("id", "overlay");
-    overlay.style.cssText = 'position: fixed; top: 0; left: 0; height: 100%; width: 100%; z-index:100;';
-    overlay.appendChild(pattern);
-
-    document.body.appendChild(overlay);
 }
 
 function generateVerticalPattern(context, width, height, ratio, freq, phaseShift)
@@ -169,10 +177,10 @@ function exitFullScreenState()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-console.log('Screen Width : ', window.screen.width);
-console.log('Screen Height : ', window.screen.height);
-console.log('Device Pixel Ratio :', devicePixelRatio);
-console.log('Effective Screen Width : ', effScreenWidth);
-console.log('Effective Screen Height : ', effScreenHeight);
-
-initPattern();
+alert('Screen Width : ' + window.screen.width);
+alert('Screen Height : ' + window.screen.height);
+alert('Inner Width : ' + window.innerWidth);
+alert('Inner Height : ' + window.innerHeight);
+alert('Device Pixel Ratio : ' + devicePixelRatio);
+alert('Effective Screen Width : ' + effScreenWidth);
+alert('Effective Screen Height : ' + effScreenHeight);
