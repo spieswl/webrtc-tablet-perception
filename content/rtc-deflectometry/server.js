@@ -94,6 +94,12 @@ io.on('connection', function(socket)
         socket.broadcast.emit('imagerequest');
     });
 
+    socket.on('sequencerequest', function()
+    {
+        log('Client requested a sequence.');
+        socket.broadcast.emit('sequencerequest');
+    });
+
     socket.on('disconnect', function(reason)
     {
         log(`Peer or server disconnected. Reason: ${reason}.`);

@@ -1,15 +1,26 @@
 'use strict';
 
+// Special constants and variables
+var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
+var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio);
+var phaseShift = 0;
+var patternInterval;
+
 // Button elements
 const connectButton = document.querySelector('button#connect');
-const requestImageButton = document.querySelector('button#requestImage');
+const requestSequenceButton = document.querySelector('button#requestSequence');
 const applyConstraintsButton = document.querySelector('button#applyConstraints');
 const showPatternButton = document.querySelector('button#showPattern');
 
 connectButton.onclick = connect;
-requestImageButton.onclick = requestImage;
+requestSequenceButton.onclick = requestSequence;
 applyConstraintsButton.onclick = applyDesiredConstraints;
-showPatternButton.onclick = showPattern;
+showPatternButton.onclick = function()
+{
+    enterFullscreenState();
+    initPattern();
+}
 
 // Settings control elements
 const expSelector = document.getElementsByName('expCtrl');
@@ -63,7 +74,8 @@ var standardConstraints =
 // Displayed page elements
 var remoteVideoCanvas = document.querySelector('video#inFeed');
 var remoteImgs = document.querySelector('div#remoteImages');
-var overlayDivs = [];
+var pattern;
+var overlay;
 
 // Networking elements
 var configuration = null;
@@ -81,7 +93,7 @@ if (!room)
 ////////////////////////////// SOCKET.IO SIGNALS ///////////////////////////////
 
 // Connect to the signaling server
-var socket = io.connect();
+var socket = io();
 
 socket.on('ipaddr', function(ipaddr)
 {
@@ -126,6 +138,12 @@ socket.on('imagerequest', function()
     sendImage();
 });
 
+socket.on('sequencerequest', function()
+{
+    console.log('CLIENT: Image capture sequence request received.');
+    patternInterval = setInterval(cyclePattern, 4000);
+});
+
 socket.on('log', function(array)
 {
     console.log.apply(console, array);
@@ -135,6 +153,7 @@ socket.on('disconnect', function(reason)
 {
     console.log(`CLIENT: Disconnected -> ${reason}.`);
     connectButton.disabled = false;
+    requestSequenceButton.disabled = true;
 });
 
 socket.on('bye', function(room)
@@ -244,12 +263,12 @@ function gotStream(stream)
     return localStream;
 }
 
-function requestImage()
+function requestSequence()
 /**
   * TODO: Add function description.
   */
 {
-    socket.emit('imagerequest');
+    socket.emit('sequencerequest');
 }
 
 function sendImage()
@@ -335,37 +354,6 @@ function renderIncomingPhoto(data)
     imageSaveCount++;
 }
 
-function showPattern()
-/**
-  * TODO: Add function description.
-  */
-{
-    var pattern = document.createElement('img');
-    pattern.setAttribute('src', 'images/sin-pattern_f100_2048x1536.png');
-    pattern.style.cssText = 'max-width: none;'
-    pattern.addEventListener("click", function()
-    {
-        var closer = document.querySelector("div#overlay");
-        closer.parentNode.removeChild(closer);
-
-        if (document.cancelFullScreen)              { document.cancelFullScreen(); }
-        else if (document.msCancelFullScreen)       { document.msCancelFullScreen(); }
-        else if (document.mozCancelFullScreen)      { document.mozCancelFullScreen(); }
-        else if (document.webkitCancelFullScreen)   { document.webkitCancelFullScreen(); }
-    });
-
-    var overlay = document.createElement('div');
-    overlay.setAttribute("id", "overlay");
-    overlay.style.cssText = 'position: fixed; top: 0; left: 0; height: 100%; width: 100%; z-index:100;';
-    overlay.appendChild(pattern);
-
-    document.body.appendChild(overlay);
-
-    if (document.documentElement.requestFullScreen)                 { document.documentElement.requestFullScreen(); }
-    else if (document.documentElement.mozRequestFullScreen)         { document.documentElement.mozRequestFullScreen(); }
-    else if (document.documentElement.webkitRequestFullScreen)      { document.documentElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT); }
-}
-
 function getFeedback(stream)
 /**
   * TODO: Add function description.
@@ -386,7 +374,7 @@ function getFeedback(stream)
     // You may add and remove these, as necessary. Make sure you update the constraints being passed
     // to track.applyConstraints() in order to reflect the added (or removed) controls.
 
-    /* -------------------------- EXPOSURE CONTROL MODE ------------------------- */
+    /* ------------------------ EXPOSURE CONTROL MODE ----------------------- */
     if ('exposureMode' in capabilities)
     {
         if      (settings.exposureMode === 'continuous')    { expSelector[0].checked = true; }
@@ -402,7 +390,7 @@ function getFeedback(stream)
         console.log('CLIENT: Exposure control is not supported by ' + track.label);
     }
 
-    /* ---------------------- EXPOSURE COMPENSATION SETTING --------------------- */
+    /* -------------------- EXPOSURE COMPENSATION SETTING ------------------- */
     if ('exposureCompensation' in capabilities)
     {
         expCompSlider.min = capabilities.exposureCompensation.min;
@@ -421,7 +409,7 @@ function getFeedback(stream)
         console.log('CLIENT: Exposure compensation adjustment is not supported by ' + track.label);
     }
 
-    /* ------------------------- EXPOSURE TIME SETTING -------------------------- */
+    /* ----------------------- EXPOSURE TIME SETTING ------------------------ */
     if ('exposureTime' in capabilities)
     {
         expTimeSlider.min = capabilities.exposureTime.min;
@@ -440,7 +428,7 @@ function getFeedback(stream)
         console.log('CLIENT: Exposure time adjustment is not supported by ' + track.label);
     }
 
-    /* ------------------------------- ISO SETTING ------------------------------ */
+    /* ----------------------------- ISO SETTING ---------------------------- */
     if ('iso' in capabilities)
     {
         isoSlider.min = capabilities.iso.min;
@@ -459,7 +447,7 @@ function getFeedback(stream)
         console.log('CLIENT: ISO adjustment is not supported by ' + track.label);
     }
 
-    /* ------------------------- FOCUS CONTROL SELECTION ------------------------ */
+    /* ----------------------- FOCUS CONTROL SELECTION ---------------------- */
     if ('focusMode' in capabilities)
     {
         if      (settings.focusMode === 'continuous')   { focusSelector[0].checked = true; }
@@ -476,7 +464,7 @@ function getFeedback(stream)
         console.log('CLIENT: Focus control is not supported by ' + track.label);
     }
 
-    /* ------------------------- FOCUS DISTANCE SETTING ------------------------- */
+    /* ----------------------- FOCUS DISTANCE SETTING ----------------------- */
     if ('focusDistance' in capabilities)
     {
         focusSlider.min = capabilities.focusDistance.min;
@@ -495,7 +483,7 @@ function getFeedback(stream)
         console.log('CLIENT: Focal distance adjustment is not supported by ' + track.label);
     }
 
-    /* ----------------------- WHITE BALANCE CONTROL MODE ----------------------- */
+    /* --------------------- WHITE BALANCE CONTROL MODE --------------------- */
     if ('whiteBalanceMode' in capabilities)
     {
         if      (settings.whiteBalanceMode === 'continuous')    { whtBalSelector[0].checked = true; }
@@ -512,7 +500,7 @@ function getFeedback(stream)
         console.log('CLIENT: White balance control is not supported by ' + track.label);
     }
 
-    /* ----------------------- COLOR TEMPERATURE SETTING ------------------------ */
+    /* --------------------- COLOR TEMPERATURE SETTING ---------------------- */
     if ('colorTemperature' in capabilities)
     {
         colorTempSlider.min = capabilities.colorTemperature.min;
@@ -531,7 +519,7 @@ function getFeedback(stream)
         console.log('CLIENT: Color temperature adjustment is not supported by ' + track.label);
     }
 
-    /* ------------------------------ ZOOM SETTING ------------------------------ */
+    /* ---------------------------- ZOOM SETTING ---------------------------- */
     if ('zoom' in capabilities)
     {
         zoomSlider.min = capabilities.zoom.min;
@@ -550,7 +538,7 @@ function getFeedback(stream)
         console.log('CLIENT: Zoom is not supported by ' + track.label);
     }
 
-    /* ------------------------------ TORCH SETTING ----------------------------- */
+    /* ---------------------------- TORCH SETTING --------------------------- */
     if ('torch' in capabilities)
     {
         if      (settings.torch === false)  { torchSelector[0].checked = true; }
@@ -578,7 +566,7 @@ function applyDesiredConstraints()
     let newConstraints = { advanced: [{}] };
 
     // Conditionals to check the status of the radio buttons before plugging them into the constraints applicator.
-    /* -------------- EXPOSURE CONTROL, COMPENSATION, TIME SETTINGS ------------- */
+    /* ------------ EXPOSURE CONTROL, COMPENSATION, TIME SETTINGS ----------- */
     if (document.getElementsByName('expCtrl')[0].checked)
     {
         newConstraints.advanced[0].exposureMode = "continuous";
@@ -589,13 +577,13 @@ function applyDesiredConstraints()
         newConstraints.advanced[0].exposureCompensation = expCompSlider.value;
     }
 
-    /* ------------------------------- ISO SETTING ------------------------------ */
+    /* ----------------------------- ISO SETTING ---------------------------- */
     if (isoSlider.disabled === false)
     {
         newConstraints.advanced[0].iso = isoSlider.value;
     }
 
-    /* -------------------- FOCUS CONTROL, DISTANCE SETTINGS -------------------- */
+    /* ------------------ FOCUS CONTROL, DISTANCE SETTINGS ------------------ */
     if (document.getElementsByName('focusCtrl')[0].checked)
     {
         newConstraints.advanced[0].focusMode = "continuous";
@@ -610,7 +598,7 @@ function applyDesiredConstraints()
         newConstraints.advanced[0].focusDistance = focusSlider.value;
     }
 
-    /* ---------------- WHITE BALANCE, COLOR TEMPERATURE SETTINGS --------------- */
+    /* -------------- WHITE BALANCE, COLOR TEMPERATURE SETTINGS ------------- */
     if (document.getElementsByName('whtBalCtrl')[0].checked)
     {
         newConstraints.advanced[0].whiteBalanceMode = "continuous";
@@ -621,13 +609,13 @@ function applyDesiredConstraints()
         newConstraints.advanced[0].colorTemperature = colorTempSlider.value;
     }
 
-    /* ------------------------------ ZOOM SETTING ------------------------------ */
+    /* ---------------------------- ZOOM SETTING ---------------------------- */
     if (zoomSlider.disabled === false)
     {
         newConstraints.advanced[0].zoom = zoomSlider.value;
     }
 
-    /* ----------------------------- TORCH CONTROLS ----------------------------- */
+    /* --------------------------- TORCH CONTROLS --------------------------- */
     if (document.getElementsByName('torchCtrl')[0].checked)
     {
         newConstraints.advanced[0].torch = "false";
@@ -648,6 +636,159 @@ function applyDesiredConstraints()
         console.log(`CLIENT: Updated track capabilities ->`, track.getCapabilities());
     })
     .catch(handleError);
+}
+
+//////////////////////////// DEFLECTOMETRY FUNCTIONS ///////////////////////////
+
+function initPattern()
+/**
+  * TODO: Add function description.
+  */
+{
+    // Overlay setup
+    overlay = document.createElement('div');
+    overlay.setAttribute("id", "overlay");
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; height: 100%; width: 100%; z-index:100;';
+
+    // Pattern setup
+    pattern = document.createElement('canvas');
+    pattern.width = effScreenWidth;
+    pattern.height = effScreenHeight;
+    pattern.style.cssText = 'max-width: none; max-height: none';
+
+    // Add a listener to escape the FullScreen status (requires an overlay w/ pattern to work properly)
+    pattern.addEventListener("click", function()
+    {
+        var cleaner = document.querySelector("div#overlay");
+        cleaner.parentNode.removeChild(cleaner);
+        
+        exitFullScreenState();
+
+        clearInterval(patternInterval);
+    });
+
+    // Start out with a blank pattern
+    var patCtx = pattern.getContext('2d');
+    var patData = generateBlankPattern(patCtx, effScreenWidth, effScreenHeight);
+    patCtx.putImageData(patData, 0, 0);
+
+    overlay.appendChild(pattern);
+
+    document.body.appendChild(overlay);
+}
+
+function showPattern(direction, frequency,  phaseShift)
+/**
+  * TODO: Add function description.
+  */
+{
+    var patCtx = pattern.getContext('2d');
+    var patData;
+    
+    if      (direction === 0)   { patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
+    else if (direction === 1)   { patData = generateHorizontalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
+    else                        { patData = generateBlankPattern(patCtx, effScreenWidth, effScreenHeight); }
+
+    patCtx.putImageData(patData, 0, 0);
+}
+
+function cyclePattern()
+/**
+  * TODO: Add function description.
+  */
+{
+    showPattern(0, 10, phaseShift);
+
+    phaseShift += (Math.PI / 2);
+
+    sendImage();
+}
+
+function generateVerticalPattern(context, width, height, ratio, freq, phaseShift)
+/**
+  * TODO: Add function description.
+  */
+{
+    var patternData = context.createImageData(width, height);
+    var value = 0;
+
+    for (var i = 0; i < (width * 4); i += 4)
+    {
+        for (var k = 0; k < height; k += 1)
+        {
+            value = ((127.5 * Math.sin((2 * Math.PI * freq * i * ratio / (width * 4)) + phaseShift)) + 127.5);
+
+            patternData.data[(4*k*width)+i+0] = value;
+            patternData.data[(4*k*width)+i+1] = value;
+            patternData.data[(4*k*width)+i+2] = value;
+            patternData.data[(4*k*width)+i+3] = 255;
+        }
+    }
+
+    return patternData;
+}
+
+function generateHorizontalPattern(context, width, height, ratio, freq, phaseShift)
+/**
+  * TODO: Add function description.
+  */
+{
+    var patternData = context.createImageData(width, height);
+    var value = 0;
+
+    for (var k = 0; k < height; k += 1)
+    {
+        value = ((127.5 * Math.sin((2 * Math.PI * freq * k * ratio / height) + phaseShift)) + 127.5);
+
+        for (var i = 0; i < (width * 4); i += 4)
+        {
+            patternData.data[(4*k*width)+i+0] = value;
+            patternData.data[(4*k*width)+i+1] = value;
+            patternData.data[(4*k*width)+i+2] = value;
+            patternData.data[(4*k*width)+i+3] = 255;
+        }
+    }
+
+    return patternData;
+}
+
+function generateBlankPattern(context, width, height)
+/**
+  * TODO: Add function description.
+  */
+{
+    var patternData = context.createImageData(width, height);
+
+    for (var i = 0; i < (width * height * 4); i += 4)
+    {
+        patternData.data[i+0] = 0;
+        patternData.data[i+1] = 0;
+        patternData.data[i+2] = 0;
+        patternData.data[i+3] = 255;
+    }
+
+    return patternData;
+}
+
+function enterFullscreenState()
+/**
+  * TODO: Add function description.
+  */
+{
+    if      (document.documentElement.requestFullScreen)            { document.documentElement.requestFullScreen(); }
+    else if (document.documentElement.mozRequestFullScreen)         { document.documentElement.mozRequestFullScreen(); }
+    else if (document.documentElement.webkitRequestFullScreen)      { document.documentElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT); }
+}
+
+function exitFullScreenState()
+/**
+  * TODO: Add function description.
+  */
+{
+    if      (document.cancelFullScreen)         { document.cancelFullScreen(); }
+    else if (document.msCancelFullScreen)       { document.msCancelFullScreen(); }
+    else if (document.mozCancelFullScreen)      { document.mozCancelFullScreen(); }
+    else if (document.webkitCancelFullScreen)   { document.webkitCancelFullScreen(); }
 }
 
 /////////////////////////////// UTILITY FUNCTIONS //////////////////////////////
