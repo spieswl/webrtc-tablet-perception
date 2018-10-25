@@ -4,8 +4,12 @@
 var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
 var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio);
-var phaseShift = 0;
+var targetFrequency = 10;
+var targetPhaseShift = 0;
+var targetDirection = 0;
 var patternInterval;
+var frequencyArray = [ 1, 2, 5, 10, 20, 50, 100 ];
+var sequenceCounter = 0;
 
 // Button elements
 const connectButton = document.querySelector('button#connect');
@@ -68,7 +72,7 @@ var standardConstraints =
         height:                 {   min: 240,   ideal: 480,     max: 1080   },
         frameRate:              {   min: 0,     ideal: 30,      max: 60     },
 
-        facingMode:             {   ideal: "user"                           }
+        facingMode:             {   ideal: "user"   }
     }
 };
 
@@ -142,7 +146,7 @@ socket.on('imagerequest', function()
 socket.on('sequencerequest', function()
 {
     console.log('CLIENT: Image capture sequence request received.');
-    patternInterval = setInterval(cyclePattern, 4000);
+    patternInterval = setInterval(cyclePattern, 6000);
 });
 
 socket.on('log', function(array)
@@ -281,7 +285,7 @@ function sendImage()
     {
         // Local canvas for temporary image storage
         var canvas = document.createElement('canvas');
-        canvas.width = 640;     // imageBitmap.width;
+        canvas.width = 640;    // imageBitmap.width;
         canvas.height = 480;    // imageBitmap.height;
         canvas.getContext('2d').drawImage(imageBitmap, 0, 0, 640, 480);
 
@@ -435,7 +439,7 @@ function getFeedback(stream)
         isoSlider.min = capabilities.iso.min;
         isoSlider.value = settings.iso.value;
         isoSlider.max = capabilities.iso.max;
-        isoSlider.step = capabilities.iso.step;
+        isoSlider.step = 100;
         isoValue.innerHTML = isoSlider.value;
 
         isoSlider.oninput = function(event) { isoValue.innerHTML = event.target.value; }
@@ -667,20 +671,22 @@ function initPattern()
 
         clearInterval(patternInterval);
 
-        phaseShift = 0;
+        targetPhaseShift = 0;
+        targetFrequency = 0;
+        sequenceCounter = 0;
         imageSendCount = 0;
     });
 
-    // Start out with a blank pattern
+    // Start out with a dummy pattern for placement purposes, locked to 10 cycles
     var patCtx = pattern.getContext('2d');
-    var patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 10, phaseShift);
+    var patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 10, targetPhaseShift);
     patCtx.putImageData(patData, 0, 0);
 
     overlay.appendChild(pattern);
 
     document.body.appendChild(overlay);
 }
- 
+
 function showPattern(direction, frequency,  phaseShift)
 /**
   * TODO: Add function description.
@@ -701,7 +707,9 @@ function cyclePattern()
   * TODO: Add function description.
   */
 {
-    showPattern(0, 10, phaseShift);
+    targetFrequency = frequencyArray[sequenceCounter];
+
+    showPattern(targetDirection, targetFrequency, targetPhaseShift);
 
     setTimeout(function()
     {
@@ -712,21 +720,25 @@ function cyclePattern()
         if (imageSendCount === 4)
         {
             imageSendCount = 0;
-            phaseShift = 0;
+            targetPhaseShift = 0;
+            sequenceCounter++;
 
-            clearInterval(patternInterval);
-
-            setTimeout(function()
+            if (sequenceCounter === frequencyArray.length)
             {
-                showPattern(2, 0, 0);
-            }, 500);
+                clearInterval(patternInterval);
+
+                setTimeout(function()
+                {
+                    showPattern(2, 0, 0);
+                }, 500);
+            }
         }
     }, 1000);
 
-    phaseShift += (Math.PI / 2);
+    targetPhaseShift += (Math.PI / 2);
 }
 
-function generateVerticalPattern(context, width, height, ratio, freq, phaseShift)
+function generateVerticalPattern(context, width, height, ratio, frequency, phaseShift)
 /**
   * TODO: Add function description.
   */
@@ -738,7 +750,7 @@ function generateVerticalPattern(context, width, height, ratio, freq, phaseShift
     {
         for (var k = 0; k < height; k += 1)
         {
-            value = ((127.5 * Math.sin((2 * Math.PI * freq * i * ratio / (width * 4)) + phaseShift)) + 127.5);
+            value = ((127.5 * Math.sin((2 * Math.PI * frequency * i * ratio / (width * 4)) + phaseShift)) + 127.5);
 
             patternData.data[(4*k*width)+i+0] = value;
             patternData.data[(4*k*width)+i+1] = value;
@@ -750,7 +762,7 @@ function generateVerticalPattern(context, width, height, ratio, freq, phaseShift
     return patternData;
 }
 
-function generateHorizontalPattern(context, width, height, ratio, freq, phaseShift)
+function generateHorizontalPattern(context, width, height, ratio, frequency, phaseShift)
 /**
   * TODO: Add function description.
   */
@@ -760,7 +772,7 @@ function generateHorizontalPattern(context, width, height, ratio, freq, phaseShi
 
     for (var k = 0; k < height; k += 1)
     {
-        value = ((127.5 * Math.sin((2 * Math.PI * freq * k * ratio / height) + phaseShift)) + 127.5);
+        value = ((127.5 * Math.sin((2 * Math.PI * frequency * k * ratio / height) + phaseShift)) + 127.5);
 
         for (var i = 0; i < (width * 4); i += 4)
         {
