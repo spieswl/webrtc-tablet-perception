@@ -54,7 +54,8 @@ var remoteConstraints;
 var remoteSettings;
 var remoteCapabilities;
 
-var imageSaveCount = 0;
+var imageSendCount = 0;
+var imageRcvCount = 0;
 
 var standardConstraints = 
 {
@@ -289,8 +290,8 @@ function sendImage()
         var img = canvas.getContext('2d').getImageData(0, 0, 640, 480);
         var len = img.data.byteLength;
         var n = len / CHUNK_LEN | 0;
-    
-        console.log('CLIENT: Sending a total of ' + len + ' byte(s).');
+
+        console.log('CLIENT: Sending a total of ' + len + ' byte(s) for image # ' + imageSendCount);
     
         if (!dataChannel)
         {
@@ -347,11 +348,11 @@ function renderIncomingPhoto(data)
 
     let newImgLink = document.createElement('a');
     newImgLink.href = dataURL;
-    newImgLink.download = "cam1_image" + imageSaveCount + ".png";
+    newImgLink.download = "cam1_image" + imageRcvCount + ".png";
     newImgLink.click();
 
     // Update the global image counter (refreshes on load)
-    imageSaveCount++;
+    imageRcvCount++;
 }
 
 function getFeedback(stream)
@@ -665,18 +666,21 @@ function initPattern()
         exitFullScreenState();
 
         clearInterval(patternInterval);
+
+        phaseShift = 0;
+        imageSendCount = 0;
     });
 
     // Start out with a blank pattern
     var patCtx = pattern.getContext('2d');
-    var patData = generateBlankPattern(patCtx, effScreenWidth, effScreenHeight);
+    var patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 10, phaseShift);
     patCtx.putImageData(patData, 0, 0);
 
     overlay.appendChild(pattern);
 
     document.body.appendChild(overlay);
 }
-
+ 
 function showPattern(direction, frequency,  phaseShift)
 /**
   * TODO: Add function description.
@@ -687,7 +691,7 @@ function showPattern(direction, frequency,  phaseShift)
     
     if      (direction === 0)   { patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
     else if (direction === 1)   { patData = generateHorizontalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
-    else                        { patData = generateBlankPattern(patCtx, effScreenWidth, effScreenHeight); }
+    else                        { patData = generateBlackPattern(patCtx, effScreenWidth, effScreenHeight); }
 
     patCtx.putImageData(patData, 0, 0);
 }
@@ -699,9 +703,27 @@ function cyclePattern()
 {
     showPattern(0, 10, phaseShift);
 
-    phaseShift += (Math.PI / 2);
+    setTimeout(function()
+    {
+        sendImage();
 
-    sendImage();
+        imageSendCount++;
+
+        if (imageSendCount === 4)
+        {
+            imageSendCount = 0;
+            phaseShift = 0;
+
+            clearInterval(patternInterval);
+
+            setTimeout(function()
+            {
+                showPattern(2, 0, 0);
+            }, 500);
+        }
+    }, 1000);
+
+    phaseShift += (Math.PI / 2);
 }
 
 function generateVerticalPattern(context, width, height, ratio, freq, phaseShift)
@@ -752,7 +774,7 @@ function generateHorizontalPattern(context, width, height, ratio, freq, phaseShi
     return patternData;
 }
 
-function generateBlankPattern(context, width, height)
+function generateBlackPattern(context, width, height)
 /**
   * TODO: Add function description.
   */
@@ -769,6 +791,25 @@ function generateBlankPattern(context, width, height)
 
     return patternData;
 }
+
+function generateWhitePattern(context, width, height)
+/**
+  * TODO: Add function description.
+  */
+{
+    var patternData = context.createImageData(width, height);
+
+    for (var i = 0; i < (width * height * 4); i += 4)
+    {
+        patternData.data[i+0] = 255;
+        patternData.data[i+1] = 255;
+        patternData.data[i+2] = 255;
+        patternData.data[i+3] = 255;
+    }
+
+    return patternData;
+}
+
 
 function enterFullscreenState()
 /**
