@@ -18,7 +18,7 @@ function createPeerConnection(isInitiator, config)
         // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: ICE Candidate event -> ', event);
         if (event.candidate)
         {
-            sendMessage(
+            socket.emit('message',
             {
                 type: 'candidate',
                 label: event.candidate.sdpMLineIndex,
@@ -69,8 +69,7 @@ function onLocalSessionCreated(desc)
     // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Local session created ->', desc);
     peerConn.setLocalDescription(desc, function()
     {
-        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Sending local desc ->', peerConn.localDescription);
-        sendMessage(peerConn.localDescription);
+        socket.emit('message', peerConn.localDescription);
     }, logError);
 }
 

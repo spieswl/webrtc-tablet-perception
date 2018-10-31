@@ -19,9 +19,9 @@ const applyConstraintsButton = document.querySelector('button#applyConstraints')
 const showPatternButton = document.querySelector('button#showPattern');
 
 connectButton.onclick = connect;
-requestSequenceButton.onclick = requestSequence;
-requestConstraintsButton.onclick = requestConstraints;
-applyConstraintsButton.onclick = applyDesiredConstraints;
+requestSequenceButton.onclick = requestSequenceFromRemote;
+requestConstraintsButton.onclick = requestConstraintsFromRemote;
+applyConstraintsButton.onclick = applyRequestToRemote;
 showPatternButton.onclick = function()
 {
     enterFullscreenState();
@@ -50,8 +50,8 @@ const torchSelector = document.getElementsByName('torchCtrl');
 var supportedDevices = [];
 var supportedConstraints;
 
-var localStream;
 var localImageCapture;
+var localStream;
 var localConstraints;
 var localSettings;
 var localCapabilities;
@@ -110,7 +110,7 @@ socket.on('created', function(room, clientId)
   
 socket.on('joined', function(room, clientId)
 {
-    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Joined room -> ', room, ' | Client ID -> ', clientId);
+    console.log('CLIENT: Joined room -> ', room, ' | Client ID -> ', clientId);
     isInitiator = false;
 });
 
@@ -130,53 +130,50 @@ socket.on('full', function(room)
 
 socket.on('message', function(message)
 {
-    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Client received message -> ', message);
     signalingMessageCallback(message);
 });
 
-socket.on('imagerequest', function()
+socket.on('image_request', function()
 {
-    console.log('CLIENT: Image request received. Sending single image.');
+    console.log('CLIENT: Received request to send latest image. Sending now...');
     sendImage();
 });
 
-socket.on('sequencerequest', function()
+socket.on('sequence_request', function()
 {
-    console.log('CLIENT: Image capture sequence request received. Starting capture sequence...');
+    console.log('CLIENT: Received request to start capture sequence. Starting capture sequence now...');
     patternInterval = setInterval(cyclePattern, 6000);
 });
 
-socket.on('constraintsrequest', function()
+socket.on('settings_request', function()
 {
-    console.log('CLIENT: Received request to transmit supported constraints for active video track.');
+    console.log('CLIENT: Received request to transmit constraint, setting, and capability data for active user media track. Transmitting now...');
 
-
+    socket.emit('settings_response', supportedConstraints, localSettings, localCapabilities);
 });
 
-socket.on('constraintsreply', function(message)
-{
-    console.log('CLIENT: Updating controls with constraints supported by remote client user media track.');
-
-    
-});
-
-socket.on('applysettingsrequest', function(message)
+socket.on('apply_request', function(settings)
 {
     console.log('CLIENT: Received request to apply the packaged settings for the active user media track.');
 
-
+    applyNewConstraints(settings);
 });
 
-socket.on('applysettingsreply', function(boolean)
+socket.on('settings_response', function(constraints, settings, capabilities)
 {
-    console.log('CLIENT: Remote client user media track settings UPDATED.');
+    console.log('CLIENT: Updating local controls with capabilities and settings used by remote client user media track.');
 
-    
+    remoteConstraints = constraints;
+    remoteSettings = settings;
+    remoteCapabilities = capabilities;
+
+    updateWithRemoteSettings(remoteConstraints, remoteSettings, remoteCapabilities);
 });
 
-socket.on('log', function(array)
+socket.on('apply_response', function(boolean)
 {
-    console.log.apply(console, array);
+    if (boolean === true)   { console.log('CLIENT: Remote client user media track settings successfully updated!'); }
+    else                    { console.log('CLIENT: Remote client unable to update user media track with requested settings!'); }
 });
 
 socket.on('disconnect', function(reason)
@@ -184,25 +181,25 @@ socket.on('disconnect', function(reason)
     console.log(`CLIENT: Disconnected -> ${reason}.`);
     connectButton.disabled = false;
     requestSequenceButton.disabled = true;
+    requestConstraintsButton.disabled = true;
+    applyConstraintsButton.disabled = true;
 });
 
 socket.on('bye', function(room)
 {
     console.log(`CLIENT: Peer leaving room ${room}.`);
-
+    
     // If peer did not create the room, re-enter to be creator.
     if (!isInitiator)
     {
         window.location.reload();
     }
 });
-  
-function sendMessage(message)
-//  TODO: Add function description.
+
+socket.on('log', function(array)
 {
-    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Client sending message -> ', message);
-    socket.emit('message', message);
-}
+    console.log.apply(console, array);
+});
 
 function signalingMessageCallback(message)
 /**
@@ -211,8 +208,6 @@ function signalingMessageCallback(message)
 {
     if (message.type === 'offer')
     {
-        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Got offer. Sending answer to peer.');
-
         var desc = new RTCSessionDescription(message);
 
         connect();
@@ -222,10 +217,7 @@ function signalingMessageCallback(message)
     }
     else if (message.type === 'answer')
     {
-        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Got answer.');
-
         var desc = new RTCSessionDescription(message);
-
         peerConn.setRemoteDescription(desc);
     }
     else if (message.type === 'candidate')
@@ -264,7 +256,6 @@ function populateDeviceList(devices)
     {
         if (devices[k].kind === 'videoinput')   { supportedDevices.push(devices[k].deviceId); }
     }
-    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log(`CLIENT : Supported video devices -> `, supportedDevices);
 
     // Update normal constraints with deviceID after the initial query
     standardConstraints.video.deviceId = supportedDevices[0];
@@ -277,36 +268,34 @@ function gotStream(stream)
 {
     localStream = stream;
 
-    var tempLocalVideo = document.createElement('video');
-    tempLocalVideo.srcObject = localStream;
-    tempLocalVideo.addEventListener('loadedmetadata', (e) =>
+    var localVideo = document.createElement('video');
+    localVideo.srcObject = localStream;
+    localVideo.addEventListener('loadedmetadata', (e) =>
     {
-        window.setTimeout(() => (getFeedback(localStream)), 500);
+        window.setTimeout(() => (getLocalFeedback(localStream)), 500);
     });
 
     localImageCapture = new ImageCapture(localStream.getVideoTracks()[0]);
 
-    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log(`CLIENT: Local stream listing ->`, localStream);
-    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log(`CLIENT: Local track listing ->`, localStream.getVideoTracks()[0]);
-    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log(`CLIENT: Local image capture ->`, localImageCapture);
-
     return localStream;
 }
 
-function requestSequence()
+function requestSequenceFromRemote()
 /**
   * TODO: Add function description.
   */
 {
-    socket.emit('sequencerequest');
+    socket.emit('sequence_request');
 }
 
-function requestConstraints()
+function requestConstraintsFromRemote()
 /**
   * TODO: Add function description.
   */
 {
-    socket.emit('constraintsrequest');
+    socket.emit('constraints_request');
+    socket.emit('settings_request');
+    socket.emit('capabilities_request');
 }
 
 function sendImage()
@@ -392,61 +381,25 @@ function renderIncomingPhoto(data)
     imageRcvCount++;
 }
 
-function getFeedback(stream)
+function getLocalFeedback(stream)
 /**
   * TODO: Add function description.
   */
 {
     let track = stream.getVideoTracks()[0];
 
-    let constraints = track.getConstraints();
-    console.log(`CLIENT: Track constraints ->`, constraints);
+    localConstraints = track.getConstraints();
+    console.log(`CLIENT: Track constraints ->`, localConstraints);
 
-    let settings = track.getSettings();
-    console.log(`CLIENT: Track settings ->`, settings);
+    localSettings = track.getSettings();
+    console.log(`CLIENT: Track settings ->`, localSettings);
 
-    let capabilities = track.getCapabilities();
-    console.log(`CLIENT: Track capabilities ->`, capabilities);
+    localCapabilities = track.getCapabilities();
+    console.log(`CLIENT: Track capabilities ->`, localCapabilities);
+}
 
-    // Using settings and capabilities to modify on-page controls - not all controls are supported!!!
-    // You may add and remove these, as necessary. Make sure you update the constraints being passed
-    // to track.applyConstraints() in order to reflect the added (or removed) controls.
-
-    /* ------------------------ EXPOSURE CONTROL MODE ----------------------- */
-    if ('exposureMode' in capabilities)
-    {
-        if      (settings.exposureMode === 'continuous')    { expSelector[0].checked = true; }
-        else if (settings.exposureMode === 'manual')        { expSelector[1].checked = true; }
-
-        for (var k = 0; k < expSelector.length; k++)
-        {
-            expSelector[k].disabled = false;
-        }
-    }
-    else
-    {
-        console.log('CLIENT: Exposure control is not supported by ' + track.label);
-    }
-
-    /* -------------------- EXPOSURE COMPENSATION SETTING ------------------- */
-    if ('exposureCompensation' in capabilities)
-    {
-        expCompSlider.min = capabilities.exposureCompensation.min;
-        expCompSlider.value = settings.exposureCompensation.value;
-        expCompSlider.max = capabilities.exposureCompensation.max;
-        expCompSlider.step = capabilities.exposureCompensation.step;
-        expCompValue.innerHTML = expCompSlider.value;
-
-        expCompSlider.oninput = function(event) { expCompValue.innerHTML = event.target.value; }
-
-        expCompSlider.disabled = false;
-    }
-    else
-    {
-        expCompSlider.value = 0;
-        console.log('CLIENT: Exposure compensation adjustment is not supported by ' + track.label);
-    }
-
+function updateWithRemoteSettings(constraints, settings, capabilities)
+{
     /* ----------------------- EXPOSURE TIME SETTING ------------------------ */
     if ('exposureTime' in capabilities)
     {
@@ -463,7 +416,7 @@ function getFeedback(stream)
     else
     {
         expTimeSlider.value = 0;
-        console.log('CLIENT: Exposure time adjustment is not supported by ' + track.label);
+        console.log('CLIENT: Exposure time adjustment is not supported by remote client.');
     }
 
     /* ----------------------------- ISO SETTING ---------------------------- */
@@ -482,7 +435,7 @@ function getFeedback(stream)
     else
     {
         isoSlider.value = 0;
-        console.log('CLIENT: ISO adjustment is not supported by ' + track.label);
+        console.log('CLIENT: ISO adjustment is not supported by remote client.');
     }
 
     /* ----------------------- FOCUS CONTROL SELECTION ---------------------- */
@@ -499,7 +452,7 @@ function getFeedback(stream)
     }
     else
     {
-        console.log('CLIENT: Focus control is not supported by ' + track.label);
+        console.log('CLIENT: Focus control is not supported by remote client.');
     }
 
     /* ----------------------- FOCUS DISTANCE SETTING ----------------------- */
@@ -518,7 +471,7 @@ function getFeedback(stream)
     else
     {
         focusSlider.value = 0;
-        console.log('CLIENT: Focal distance adjustment is not supported by ' + track.label);
+        console.log('CLIENT: Focal distance adjustment is not supported by remote client.');
     }
 
     /* --------------------- WHITE BALANCE CONTROL MODE --------------------- */
@@ -535,7 +488,7 @@ function getFeedback(stream)
     }
     else
     {
-        console.log('CLIENT: White balance control is not supported by ' + track.label);
+        console.log('CLIENT: White balance control is not supported by remote client.');
     }
 
     /* --------------------- COLOR TEMPERATURE SETTING ---------------------- */
@@ -554,7 +507,7 @@ function getFeedback(stream)
     else
     {
         colorTempSlider.value = 0;
-        console.log('CLIENT: Color temperature adjustment is not supported by ' + track.label);
+        console.log('CLIENT: Color temperature adjustment is not supported by remote client.');
     }
 
     /* ---------------------------- ZOOM SETTING ---------------------------- */
@@ -573,7 +526,7 @@ function getFeedback(stream)
     else
     {
         zoomSlider.value = 0;
-        console.log('CLIENT: Zoom is not supported by ' + track.label);
+        console.log('CLIENT: Zoom is not supported by remote client.');
     }
 
     /* ---------------------------- TORCH SETTING --------------------------- */
@@ -589,18 +542,26 @@ function getFeedback(stream)
     }
     else
     {
-        console.log('CLIENT: Torch control is not supported by ' + track.label);
+        console.log('CLIENT: Torch control is not supported by remote client.');
     }
 
     applyConstraintsButton.disabled = false;
 }
 
-function applyDesiredConstraints()
+function applyRequestToRemote()
+{
+    let newSettings = assembleNewConstraintsForRemote();
+
+    console.log('CLIENT: Applying new settings based on remote request ->', newSettings);
+
+    socket.emit('apply_request', newSettings);
+}
+
+function assembleNewConstraintsForRemote()
 /**
   * TODO: Add function description.
   */
 {
-    let track = localStream.getVideoTracks()[0];
     let newConstraints = { advanced: [{}] };
 
     // Conditionals to check the status of the radio buttons before plugging them into the constraints applicator.
@@ -663,17 +624,29 @@ function applyDesiredConstraints()
         newConstraints.advanced[0].torch = "true";
     }
 
+    return newConstraints;
+}
 
-    track.applyConstraints(newConstraints).then(function()
+function applyNewConstraints(constraints)
+{
+    let track = localStream.getVideoTracks()[0];
+
+    track.applyConstraints(constraints).then(function()
     {
-        console.log('CLIENT: Newly applied constraints -> ', newConstraints);
+        console.log('CLIENT: Newly applied constraints -> ', constraints);
 
         // Updated details
         console.log(`CLIENT: Updated track constraints ->`, track.getConstraints());
         console.log(`CLIENT: Updated track settings ->`, track.getSettings());
         console.log(`CLIENT: Updated track capabilities ->`, track.getCapabilities());
+
+        socket.emit('apply_response', true);
     })
-    .catch(handleError);
+    .catch(function(error)
+    {
+        handleError(error)
+        socket.emit('apply_response', false);
+    });
 }
 
 //////////////////////////// DEFLECTOMETRY FUNCTIONS ///////////////////////////

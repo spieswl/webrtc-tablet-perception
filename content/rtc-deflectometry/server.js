@@ -72,44 +72,44 @@ io.on('connection', function(socket)
 
     socket.on('message', function(message)
     {
-        log('Client ID ' + socket.id + ' said: ', message);
+        log('Client ID ' + socket.id + ' signalled: ', message);
         socket.broadcast.emit('message', message);
     });
 
-    socket.on('imagerequest', function()
+    socket.on('image_request', function()
     {
         log('Client ID ' + socket.id + ' requested a single image.');
-        socket.broadcast.emit('imagerequest');
+        socket.broadcast.emit('image_request');
     });
 
-    socket.on('sequencerequest', function()
+    socket.on('sequence_request', function()
     {
         log('Client ID ' + socket.id + ' requested a capture sequence.');
-        socket.broadcast.emit('sequencerequest');
+        socket.broadcast.emit('sequence_request');
     });
 
-    socket.on('constraintsrequest', function()
+    socket.on('settings_request', function()
     {
-        log('Client ID ' + socket.id + ' requested available constraints for the measurement device.');
-        socket.broadcast.emit('constraintsrequest');
+        log('Client ID ' + socket.id + ' requested current settings for the remote measurement device.');
+        socket.broadcast.emit('settings_request');
     });
 
-    socket.on('constraintsreply', function(message)
+    socket.on('apply_request', function(settings)
     {
-        log('Client ID ' + socket.id + ' replied to an available constraints request.');
-        socket.broadcast.emit('constraintsreply', message);
+        log('Client ID ' + socket.id + ' requested that the remote measurement device use the packaged settings.', settings);
+        socket.broadcast.emit('apply_request', settings);
     });
 
-    socket.on('applysettingsrequest', function(message)
+    socket.on('settings_response', function(constraints, settings, capabilities)
     {
-        log('Client ID ' + socket.id + ' requested that the measurement device use the packaged settings.');
-        socket.broadcast.emit('applysettingsrequest', message);
+        log('Client ID ' + socket.id + ' replied to a remote device settings enumeration request.', constraints, settings, capabilities);
+        socket.broadcast.emit('settings_response', constraints, settings, capabilities);
     });
 
-    socket.on('applysettingsreply', function(boolean)
+    socket.on('apply_response', function(boolean)
     {
-        log('Client ID ' + socket.id + ' replied to a settings application request.');
-        socket.broadcast.emit('applysettingsreply', boolean);
+        log('Client ID ' + socket.id + ' replied to a remote device settings application request.');
+        socket.broadcast.emit('apply_response', boolean);
     });
 
     socket.on('disconnect', function(reason)
