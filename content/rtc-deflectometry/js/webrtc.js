@@ -7,7 +7,7 @@ function createPeerConnection(isInitiator, config)
   * TODO: Add function description.
   */
 {
-    console.log('CLIENT: Creating Peer connection as initiator?', isInitiator, 'Config?', config);
+    console.log('CLIENT: Creating peer connection as initiator?', isInitiator, 'Config?', config);
     peerConn = new RTCPeerConnection(config);
 
     peerConn.addTrack(localStream.getVideoTracks()[0], localStream);
@@ -15,7 +15,7 @@ function createPeerConnection(isInitiator, config)
     // Send any ICE candidates to the other peer
     peerConn.onicecandidate = function(event)
     {
-        console.log('CLIENT: ICE Candidate event -> ', event);
+        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: ICE Candidate event -> ', event);
         if (event.candidate)
         {
             sendMessage(
@@ -28,24 +28,24 @@ function createPeerConnection(isInitiator, config)
         }
         else
         {
-            console.log('CLIENT: End of candidates.');
+            // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: End of candidates.');
         }
     };
 
     if (isInitiator)
     {
-        console.log('CLIENT: Creating Data channel.');
+        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Creating Data channel.');
         dataChannel = peerConn.createDataChannel('images');
         onDataChannelCreated(dataChannel);
-      
-        console.log('CLIENT: Creating an offer.');
+
+        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Creating an offer.');
         peerConn.createOffer(onLocalSessionCreated, logError);
     }
     else
     {
         peerConn.ondatachannel = function(event)
         {
-            console.log('CLIENT: OnDataChannel -> ', event.channel);
+            // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: OnDataChannel -> ', event.channel);
             dataChannel = event.channel;
             onDataChannelCreated(dataChannel);
         };
@@ -66,10 +66,10 @@ function onLocalSessionCreated(desc)
   * TODO: Add function description.
   */
 {
-    console.log('CLIENT: Local session created ->', desc);
+    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Local session created ->', desc);
     peerConn.setLocalDescription(desc, function()
     {
-        console.log('CLIENT: Sending local desc ->', peerConn.localDescription);
+        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Sending local desc ->', peerConn.localDescription);
         sendMessage(peerConn.localDescription);
     }, logError);
 }
@@ -79,18 +79,20 @@ function onDataChannelCreated(channel)
   * TODO: Add function description.
   */
 {
-    console.log('CLIENT: OnDataChannelCreated -> ', channel);
+    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: OnDataChannelCreated -> ', channel);
 
     channel.onopen = function()
     {
         console.log('CLIENT: Data channel opened!');
         requestSequenceButton.disabled = false;
+        requestConstraintsButton.disabled = false;
     };
   
     channel.onclose = function()
     {
         console.log('CLIENT: Data channel closed!');
         requestSequenceButton.disabled = true;
+        requestConstraintsButton.disabled = true;
     }
 
     channel.onmessage = (adapter.browserDetails.browser === 'firefox') ? receiveDataFirefoxFactory() : receiveDataChromeFactory();

@@ -14,11 +14,13 @@ var sequenceCounter = 0;
 // Button elements
 const connectButton = document.querySelector('button#connect');
 const requestSequenceButton = document.querySelector('button#requestSequence');
+const requestConstraintsButton = document.querySelector('button#requestConstraints');
 const applyConstraintsButton = document.querySelector('button#applyConstraints');
 const showPatternButton = document.querySelector('button#showPattern');
 
 connectButton.onclick = connect;
 requestSequenceButton.onclick = requestSequence;
+requestConstraintsButton.onclick = requestConstraints;
 applyConstraintsButton.onclick = applyDesiredConstraints;
 showPatternButton.onclick = function()
 {
@@ -100,11 +102,6 @@ if (!room)
 // Connect to the signaling server
 var socket = io();
 
-socket.on('ipaddr', function(ipaddr)
-{
-    console.log('CLIENT: Server IP address -> ' + ipaddr);
-});
-
 socket.on('created', function(room, clientId)
 {
     console.log('CLIENT: Created room -> ', room, ' | Client ID -> ', clientId);
@@ -113,7 +110,7 @@ socket.on('created', function(room, clientId)
   
 socket.on('joined', function(room, clientId)
 {
-    console.log('CLIENT: Joined room -> ', room, ' | Client ID -> ', clientId);
+    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Joined room -> ', room, ' | Client ID -> ', clientId);
     isInitiator = false;
 });
 
@@ -133,20 +130,48 @@ socket.on('full', function(room)
 
 socket.on('message', function(message)
 {
-    console.log('CLIENT: Client received message -> ', message);
+    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Client received message -> ', message);
     signalingMessageCallback(message);
 });
 
 socket.on('imagerequest', function()
 {
-    console.log('CLIENT: Image request received. Sending image.');
+    console.log('CLIENT: Image request received. Sending single image.');
     sendImage();
 });
 
 socket.on('sequencerequest', function()
 {
-    console.log('CLIENT: Image capture sequence request received.');
+    console.log('CLIENT: Image capture sequence request received. Starting capture sequence...');
     patternInterval = setInterval(cyclePattern, 6000);
+});
+
+socket.on('constraintsrequest', function()
+{
+    console.log('CLIENT: Received request to transmit supported constraints for active video track.');
+
+
+});
+
+socket.on('constraintsreply', function(message)
+{
+    console.log('CLIENT: Updating controls with constraints supported by remote client user media track.');
+
+    
+});
+
+socket.on('applysettingsrequest', function(message)
+{
+    console.log('CLIENT: Received request to apply the packaged settings for the active user media track.');
+
+
+});
+
+socket.on('applysettingsreply', function(boolean)
+{
+    console.log('CLIENT: Remote client user media track settings UPDATED.');
+
+    
 });
 
 socket.on('log', function(array)
@@ -175,7 +200,7 @@ socket.on('bye', function(room)
 function sendMessage(message)
 //  TODO: Add function description.
 {
-    console.log('CLIENT: Client sending message -> ', message);
+    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Client sending message -> ', message);
     socket.emit('message', message);
 }
 
@@ -186,7 +211,7 @@ function signalingMessageCallback(message)
 {
     if (message.type === 'offer')
     {
-        console.log('CLIENT: Got offer. Sending answer to peer.');
+        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Got offer. Sending answer to peer.');
 
         var desc = new RTCSessionDescription(message);
 
@@ -197,7 +222,7 @@ function signalingMessageCallback(message)
     }
     else if (message.type === 'answer')
     {
-        console.log('CLIENT: Got answer.');
+        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Got answer.');
 
         var desc = new RTCSessionDescription(message);
 
@@ -274,6 +299,14 @@ function requestSequence()
   */
 {
     socket.emit('sequencerequest');
+}
+
+function requestConstraints()
+/**
+  * TODO: Add function description.
+  */
+{
+    socket.emit('constraintsrequest');
 }
 
 function sendImage()
@@ -677,7 +710,7 @@ function initPattern()
         imageSendCount = 0;
     });
 
-    // Start out with a dummy pattern for placement purposes, locked to 10 cycles
+    // Start out with a dummy pattern for placement and alignment purposes, locked to 10 cycles
     var patCtx = pattern.getContext('2d');
     var patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 10, targetPhaseShift);
     patCtx.putImageData(patData, 0, 0);
@@ -711,31 +744,27 @@ function cyclePattern()
 
     showPattern(targetDirection, targetFrequency, targetPhaseShift);
 
+    targetPhaseShift += (Math.PI / 2);
+
     setTimeout(function()
     {
         sendImage();
 
         imageSendCount++;
 
-        if (imageSendCount === 4)
+        if (imageSendCount === 4)                               // End of capture sequence for a particular frequency
         {
             imageSendCount = 0;
             targetPhaseShift = 0;
             sequenceCounter++;
 
-            if (sequenceCounter === frequencyArray.length)
+            if (sequenceCounter === frequencyArray.length)      // End of capture sequence for all frequencies
             {
                 clearInterval(patternInterval);
-
-                setTimeout(function()
-                {
-                    showPattern(2, 0, 0);
-                }, 500);
+                setTimeout(function() { showPattern(2, 0, 0); }, 500);
             }
         }
     }, 1000);
-
-    targetPhaseShift += (Math.PI / 2);
 }
 
 function generateVerticalPattern(context, width, height, ratio, frequency, phaseShift)
@@ -748,10 +777,10 @@ function generateVerticalPattern(context, width, height, ratio, frequency, phase
 
     for (var i = 0; i < (width * 4); i += 4)
     {
+        value = ((127.5 * Math.sin((2 * Math.PI * frequency * i * ratio / (width * 4)) + phaseShift)) + 127.5);
+        
         for (var k = 0; k < height; k += 1)
         {
-            value = ((127.5 * Math.sin((2 * Math.PI * frequency * i * ratio / (width * 4)) + phaseShift)) + 127.5);
-
             patternData.data[(4*k*width)+i+0] = value;
             patternData.data[(4*k*width)+i+1] = value;
             patternData.data[(4*k*width)+i+2] = value;
@@ -863,7 +892,6 @@ function handleError(error)
 
     alert(message);
     console.log(message);
-    startVideoButton.disabled = false;
 }
 
 function logError(err)
@@ -888,25 +916,20 @@ function logError(err)
 // Initial gUM scan
 navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function()
 {
-        supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-        console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
+    supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+    console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
 
-        navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(function()
-        {
-            startVideo();
-        });
+    navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(function()
+    {
+        startVideo();
+    });
 })
 .catch(handleError);
 
-if (location.hostname.match(/localhost|127\.0\.0/))
-{
-    socket.emit('ipaddr');
-}
+socket.emit('create or join', room);
 
 window.addEventListener('unload', function()
 {
     console.log(`CLIENT: Unloading window. Notifying peers in ${room}.`);
     socket.emit('bye', room);
 });
-
-socket.emit('create or join', room);
