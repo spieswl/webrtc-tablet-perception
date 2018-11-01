@@ -213,7 +213,7 @@ function signalingMessageCallback(message)
         connect();
 
         peerConn.setRemoteDescription(desc);
-        peerConn.createAnswer(onLocalSessionCreated, logError);
+        peerConn.createAnswer(onLocalSessionCreated, handleError);
     }
     else if (message.type === 'answer')
     {
@@ -321,12 +321,12 @@ function sendImage()
     
         if (!dataChannel)
         {
-            logError('ERROR: Connection has not been initiated. Get two peers in the same room first!');
+            handleError('ERROR: Connection has not been initiated. Get two peers in the same room first!');
             return;
         }
         else if (dataChannel.readyState === 'closed')
         {
-            logError('ERROR: Connection was lost. Peer closed the connection.');
+            handleError('ERROR: Connection was lost. Peer closed the connection.');
             return;
         }
     
@@ -389,24 +389,85 @@ function getLocalFeedback(stream)
     let track = stream.getVideoTracks()[0];
 
     localConstraints = track.getConstraints();
-    console.log(`CLIENT: Track constraints ->`, localConstraints);
+    console.log(`CLIENT: Current track constraints ->`, localConstraints);
 
     localSettings = track.getSettings();
-    console.log(`CLIENT: Track settings ->`, localSettings);
+    console.log(`CLIENT: Current track settings ->`, localSettings);
 
-    localCapabilities = track.getCapabilities();
-    console.log(`CLIENT: Track capabilities ->`, localCapabilities);
+    // This code handles converting MediaSettingsRange objects into normal objects, so they can be transferred over the Socket.io connection without being mangled.
+    localCapabilities = {};
+    let tempCapabilitiesObj = Object.entries(track.getCapabilities());
+    for (var k = 0; k < tempCapabilitiesObj.length; k++)
+    {
+        var tempValue = {};
+        var tempName = tempCapabilitiesObj[k][0].toString();
+
+        if (tempCapabilitiesObj[k][1].toString() === '[object MediaSettingsRange]')
+        {
+            tempValue = Object.assign({max: tempCapabilitiesObj[k][1].max, min: tempCapabilitiesObj[k][1].min, step: tempCapabilitiesObj[k][1].step}, tempValue);
+        }
+        else if (tempCapabilitiesObj[k][1].toString() === '[object Object]')
+        {
+            tempValue = Object.assign({max: tempCapabilitiesObj[k][1].max, min: tempCapabilitiesObj[k][1].min}, tempValue);
+        }
+        else
+        {
+            tempValue = tempCapabilitiesObj[k][1];
+        }
+
+        localCapabilities = Object.assign({[tempName]: tempValue}, localCapabilities);
+    }
+    console.log(`CLIENT: Current track capabilities ->`, localCapabilities);
 }
 
 function updateWithRemoteSettings(constraints, settings, capabilities)
 {
+    // Using settings and capabilities to modify on-page controls - not all controls are supported!!!
+    // You may add and remove these, as necessary. Make sure you update the constraints being passed
+    // to track.applyConstraints() in order to reflect the added (or removed) controls.
+
+    /* ------------------------ EXPOSURE CONTROL MODE ----------------------- */
+    if ('exposureMode' in capabilities)
+    {
+        if      (settings.exposureMode === 'continuous')    { expSelector[0].checked = true; }
+        else if (settings.exposureMode === 'manual')        { expSelector[1].checked = true; }
+
+        for (var k = 0; k < expSelector.length; k++)
+        {
+            expSelector[k].disabled = false;
+        }
+    }
+    else
+    {
+        console.log('CLIENT: Exposure control is not supported by remote client.');
+    }
+
+    /* -------------------- EXPOSURE COMPENSATION SETTING ------------------- */
+    if ('exposureCompensation' in capabilities)
+    {
+        expCompSlider.min = capabilities.exposureCompensation.min;
+        expCompSlider.max = capabilities.exposureCompensation.max;
+        expCompSlider.step = capabilities.exposureCompensation.step;
+        expCompSlider.value = settings.exposureCompensation;
+        expCompValue.innerHTML = expCompSlider.value;
+
+        expCompSlider.oninput = function(event) { expCompValue.innerHTML = event.target.value; }
+
+        expCompSlider.disabled = false;
+    }
+    else
+    {
+        expCompSlider.value = 0;
+        console.log('CLIENT: Exposure compensation adjustment is not supported by remote client.');
+    }
+
     /* ----------------------- EXPOSURE TIME SETTING ------------------------ */
     if ('exposureTime' in capabilities)
     {
         expTimeSlider.min = capabilities.exposureTime.min;
-        expTimeSlider.value = settings.exposureTime.value;
         expTimeSlider.max = capabilities.exposureTime.max;
         expTimeSlider.step = capabilities.exposureTime.step;
+        expTimeSlider.value = settings.exposureTime;
         expTimeValue.innerHTML = expTimeSlider.value;
 
         expTimeSlider.oninput = function(event) { expTimeValue.innerHTML = event.target.value; }
@@ -423,9 +484,9 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
     if ('iso' in capabilities)
     {
         isoSlider.min = capabilities.iso.min;
-        isoSlider.value = settings.iso.value;
         isoSlider.max = capabilities.iso.max;
         isoSlider.step = 100;
+        isoSlider.value = settings.iso;
         isoValue.innerHTML = isoSlider.value;
 
         isoSlider.oninput = function(event) { isoValue.innerHTML = event.target.value; }
@@ -459,9 +520,9 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
     if ('focusDistance' in capabilities)
     {
         focusSlider.min = capabilities.focusDistance.min;
-        focusSlider.value = settings.focusDistance.value;
         focusSlider.max = capabilities.focusDistance.max;
         focusSlider.step = capabilities.focusDistance.step;
+        focusSlider.value = settings.focusDistance;
         focusValue.innerHTML = focusSlider.value;
 
         focusSlider.oninput = function(event) { focusValue.innerHTML = event.target.value; }
@@ -495,9 +556,9 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
     if ('colorTemperature' in capabilities)
     {
         colorTempSlider.min = capabilities.colorTemperature.min;
-        colorTempSlider.value = settings.colorTemperature.value;
         colorTempSlider.max = capabilities.colorTemperature.max;
         colorTempSlider.step = capabilities.colorTemperature.step;
+        colorTempSlider.value = settings.colorTemperature;
         colorTempValue.innerHTML = colorTempSlider.value;
 
         colorTempSlider.oninput = function(event) { colorTempValue.innerHTML = event.target.value; }
@@ -514,9 +575,9 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
     if ('zoom' in capabilities)
     {
         zoomSlider.min = capabilities.zoom.min;
-        zoomSlider.value = settings.zoom;
         zoomSlider.max = capabilities.zoom.max;
         zoomSlider.step = capabilities.zoom.step;
+        zoomSlider.value = settings.zoom;
         zoomValue.innerHTML = zoomSlider.value;
 
         zoomSlider.oninput = function(event) { zoomValue.innerHTML = event.target.value; }
@@ -635,10 +696,7 @@ function applyNewConstraints(constraints)
     {
         console.log('CLIENT: Newly applied constraints -> ', constraints);
 
-        // Updated details
-        console.log(`CLIENT: Updated track constraints ->`, track.getConstraints());
-        console.log(`CLIENT: Updated track settings ->`, track.getSettings());
-        console.log(`CLIENT: Updated track capabilities ->`, track.getCapabilities());
+        getLocalFeedback(localStream);
 
         socket.emit('apply_response', true);
     })
@@ -861,26 +919,16 @@ function handleError(error)
   * TODO: Add function description.
   */
 {
-    const message = `CLIENT: Error ->  ${error.name} : ${error.message}`;
-
-    alert(message);
-    console.log(message);
-}
-
-function logError(err)
-/**
-  * TODO: Add function description.
-  */
-{
-    if (!err) return;
-
-    if (typeof err === 'string')
+    if (typeof error === 'string')
     {
-        console.warn(err);
-    } 
+        console.log(error);
+    }
     else
     {
-        console.warn(err.toString(), err);
+        const message = `CLIENT: Error ->  ${error.name} : ${error.message}`;
+
+        alert(message);
+        console.log(message);
     }
 }
 

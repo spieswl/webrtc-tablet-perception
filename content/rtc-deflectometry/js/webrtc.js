@@ -39,7 +39,7 @@ function createPeerConnection(isInitiator, config)
         onDataChannelCreated(dataChannel);
 
         // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Creating an offer.');
-        peerConn.createOffer(onLocalSessionCreated, logError);
+        peerConn.createOffer(onLocalSessionCreated, handleError);
     }
     else
     {
@@ -70,7 +70,7 @@ function onLocalSessionCreated(desc)
     peerConn.setLocalDescription(desc, function()
     {
         socket.emit('message', peerConn.localDescription);
-    }, logError);
+    }, handleError);
 }
 
 function onDataChannelCreated(channel)
