@@ -150,6 +150,8 @@ socket.on('settings_request', function()
 {
     console.log('CLIENT: Received request to transmit constraint, setting, and capability data for active user media track. Transmitting now...');
 
+    getLocalFeedback(localStream);
+
     socket.emit('settings_response', supportedConstraints, localSettings, localCapabilities);
 });
 
