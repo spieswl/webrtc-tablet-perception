@@ -2,6 +2,8 @@
 
 // Special constants and variables
 var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+var currentDate = new Date();
+var dateString = currentDate.getFullYear() + "-" + currentDate.getMonth() + "-" + currentDate.getDate();
 var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
 var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio);
 var targetFrequency = 10;
@@ -10,6 +12,8 @@ var targetDirection = 0;
 var patternInterval;
 var frequencyArray = [ 1, 2, 5, 10, 20, 50, 100 ];
 var sequenceCounter = 0;
+var remoteFrequency;
+var remotePhaseShift;
 
 // Button elements
 const connectButton = document.querySelector('button#connect');
@@ -177,6 +181,12 @@ socket.on('apply_response', function(boolean)
 {
     if (boolean === true)   { console.log('CLIENT: Remote client user media track settings successfully updated!'); }
     else                    { console.log('CLIENT: Remote client unable to update user media track with requested settings!'); }
+});
+
+socket.on('sequence_data', function(sequenceParam1, sequenceParam2)
+{
+    remoteFrequency = sequenceParam1;
+    remotePhaseShift = sequenceParam2;
 });
 
 socket.on('disconnect', function(reason)
@@ -375,7 +385,7 @@ function renderIncomingPhoto(data)
 
     let newImgLink = document.createElement('a');
     newImgLink.href = dataURL;
-    newImgLink.download = "cam1_image" + imageRcvCount + ".png";
+    newImgLink.download = "f" + remoteFrequency + "_ps" + remotePhaseShift + "_img" + imageRcvCount + "_" + dateString + ".png";
     newImgLink.click();
 
     // Update the global image counter (refreshes on load)
@@ -789,8 +799,9 @@ function cyclePattern()
 
     setTimeout(function()
     {
-        sendImage();
+        socket.emit('sequence_data', targetFrequency, imageSendCount);
 
+        sendImage();
         imageSendCount++;
 
         if (imageSendCount === 4)                               // End of capture sequence for a particular frequency
