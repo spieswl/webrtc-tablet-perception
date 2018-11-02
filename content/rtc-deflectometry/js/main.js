@@ -14,14 +14,14 @@ var sequenceCounter = 0;
 // Button elements
 const connectButton = document.querySelector('button#connect');
 const requestSequenceButton = document.querySelector('button#requestSequence');
-const requestConstraintsButton = document.querySelector('button#requestConstraints');
-const applyConstraintsButton = document.querySelector('button#applyConstraints');
+const requestConfigButton = document.querySelector('button#requestConfig');
+const applyConfigButton = document.querySelector('button#applyConfig');
 const showPatternButton = document.querySelector('button#showPattern');
 
 connectButton.onclick = connect;
 requestSequenceButton.onclick = requestSequenceFromRemote;
-requestConstraintsButton.onclick = requestConstraintsFromRemote;
-applyConstraintsButton.onclick = applyRequestToRemote;
+requestConfigButton.onclick = requestConfigFromRemote;
+applyConfigButton.onclick = applyConfigToRemote;
 showPatternButton.onclick = function()
 {
     enterFullscreenState();
@@ -63,6 +63,7 @@ var remoteCapabilities;
 var imageSendCount = 0;
 var imageRcvCount = 0;
 
+// Typical constraints (to start)
 var standardConstraints = 
 {
     audio: false,
@@ -181,8 +182,8 @@ socket.on('disconnect', function(reason)
     console.log(`CLIENT: Disconnected -> ${reason}.`);
     connectButton.disabled = false;
     requestSequenceButton.disabled = true;
-    requestConstraintsButton.disabled = true;
-    applyConstraintsButton.disabled = true;
+    requestConfigButton.disabled = true;
+    applyConfigButton.disabled = true;
 });
 
 socket.on('bye', function(room)
@@ -288,14 +289,12 @@ function requestSequenceFromRemote()
     socket.emit('sequence_request');
 }
 
-function requestConstraintsFromRemote()
+function requestConfigFromRemote()
 /**
   * TODO: Add function description.
   */
 {
-    socket.emit('constraints_request');
     socket.emit('settings_request');
-    socket.emit('capabilities_request');
 }
 
 function sendImage()
@@ -421,6 +420,9 @@ function getLocalFeedback(stream)
 }
 
 function updateWithRemoteSettings(constraints, settings, capabilities)
+/**
+  * TODO: Add function description.
+  */
 {
     // Using settings and capabilities to modify on-page controls - not all controls are supported!!!
     // You may add and remove these, as necessary. Make sure you update the constraints being passed
@@ -606,19 +608,22 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
         console.log('CLIENT: Torch control is not supported by remote client.');
     }
 
-    applyConstraintsButton.disabled = false;
+    applyConfigButton.disabled = false;
 }
 
-function applyRequestToRemote()
+function applyConfigToRemote()
+/**
+  * TODO: Add function description.
+  */
 {
-    let newSettings = assembleNewConstraintsForRemote();
+    let newSettings = assembleNewConfigForRemote();
 
-    console.log('CLIENT: Applying new settings based on remote request ->', newSettings);
+    console.log('CLIENT: Applying new configuration based on remote request ->', newSettings);
 
     socket.emit('apply_request', newSettings);
 }
 
-function assembleNewConstraintsForRemote()
+function assembleNewConfigForRemote()
 /**
   * TODO: Add function description.
   */
@@ -689,6 +694,9 @@ function assembleNewConstraintsForRemote()
 }
 
 function applyNewConstraints(constraints)
+/**
+  * TODO: Add function description.
+  */
 {
     let track = localStream.getVideoTracks()[0];
 

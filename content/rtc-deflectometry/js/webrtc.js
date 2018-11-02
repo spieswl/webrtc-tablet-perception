@@ -15,7 +15,6 @@ function createPeerConnection(isInitiator, config)
     // Send any ICE candidates to the other peer
     peerConn.onicecandidate = function(event)
     {
-        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: ICE Candidate event -> ', event);
         if (event.candidate)
         {
             socket.emit('message',
@@ -28,24 +27,20 @@ function createPeerConnection(isInitiator, config)
         }
         else
         {
-            // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: End of candidates.');
+            console.log('CLIENT: End of candidates.');
         }
     };
 
     if (isInitiator)
     {
-        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Creating Data channel.');
         dataChannel = peerConn.createDataChannel('images');
         onDataChannelCreated(dataChannel);
-
-        // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Creating an offer.');
         peerConn.createOffer(onLocalSessionCreated, handleError);
     }
     else
     {
         peerConn.ondatachannel = function(event)
         {
-            // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: OnDataChannel -> ', event.channel);
             dataChannel = event.channel;
             onDataChannelCreated(dataChannel);
         };
@@ -66,11 +61,7 @@ function onLocalSessionCreated(desc)
   * TODO: Add function description.
   */
 {
-    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: Local session created ->', desc);
-    peerConn.setLocalDescription(desc, function()
-    {
-        socket.emit('message', peerConn.localDescription);
-    }, handleError);
+    peerConn.setLocalDescription(desc, function() { socket.emit('message', peerConn.localDescription); }, handleError);
 }
 
 function onDataChannelCreated(channel)
@@ -78,20 +69,18 @@ function onDataChannelCreated(channel)
   * TODO: Add function description.
   */
 {
-    // (REMOVE COMMENT FOR DEBUG OUTPUT) console.log('CLIENT: OnDataChannelCreated -> ', channel);
-
     channel.onopen = function()
     {
         console.log('CLIENT: Data channel opened!');
         requestSequenceButton.disabled = false;
-        requestConstraintsButton.disabled = false;
+        requestConfigButton.disabled = false;
     };
   
     channel.onclose = function()
     {
         console.log('CLIENT: Data channel closed!');
         requestSequenceButton.disabled = true;
-        requestConstraintsButton.disabled = true;
+        requestConfigButton.disabled = true;
     }
 
     channel.onmessage = (adapter.browserDetails.browser === 'firefox') ? receiveDataFirefoxFactory() : receiveDataChromeFactory();
