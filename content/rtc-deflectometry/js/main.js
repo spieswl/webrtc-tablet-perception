@@ -209,11 +209,6 @@ socket.on('bye', function(room)
     }
 });
 
-socket.on('log', function(array)
-{
-    console.log.apply(console, array);
-});
-
 function signalingMessageCallback(message)
 /**
   * TODO: Add function description.
@@ -644,11 +639,11 @@ function assembleNewConfigForRemote()
 
     // Conditionals to check the status of the radio buttons before plugging them into the constraints applicator.
     /* ------------ EXPOSURE CONTROL, COMPENSATION, TIME SETTINGS ----------- */
-    if (document.getElementsByName('expCtrl')[0].checked)
+    if (expSelector[0].checked)
     {
         newConstraints.advanced[0].exposureMode = "continuous";
     }
-    else if (document.getElementsByName('expCtrl')[1].checked)
+    else if (expSelector[1].checked)
     {
         newConstraints.advanced[0].exposureMode = "manual";
         newConstraints.advanced[0].exposureCompensation = expCompSlider.value;
@@ -661,29 +656,33 @@ function assembleNewConfigForRemote()
     }
 
     /* ------------------ FOCUS CONTROL, DISTANCE SETTINGS ------------------ */
-    if (document.getElementsByName('focusCtrl')[0].checked)
+    if (focusSelector[0].checked)
     {
         newConstraints.advanced[0].focusMode = "continuous";
     }
-    else if (document.getElementsByName('focusCtrl')[1].checked)
+    else if (focusSelector[1].checked)
     {
         newConstraints.advanced[0].focusMode = "single-shot";
     }
-    else if (document.getElementsByName('focusCtrl')[2].checked)
+    else if (focusSelector[2].checked)
     {
         newConstraints.advanced[0].focusMode = "manual";
         newConstraints.advanced[0].focusDistance = focusSlider.value;
     }
 
     /* -------------- WHITE BALANCE, COLOR TEMPERATURE SETTINGS ------------- */
-    if (document.getElementsByName('whtBalCtrl')[0].checked)
+    if (whtBalSelector[0].checked)
     {
         newConstraints.advanced[0].whiteBalanceMode = "continuous";
     }
-    else if (document.getElementsByName('whtBalCtrl')[1].checked)
+    else if (whtBalSelector[1].checked)
     {
         newConstraints.advanced[0].whiteBalanceMode = "manual";
         newConstraints.advanced[0].colorTemperature = colorTempSlider.value;
+    }
+    else if (whtBalSelector[2].checked)
+    {
+        newConstraints.advanced[0].whiteBalanceMode = "none";
     }
 
     /* ---------------------------- ZOOM SETTING ---------------------------- */
@@ -693,11 +692,11 @@ function assembleNewConfigForRemote()
     }
 
     /* --------------------------- TORCH CONTROLS --------------------------- */
-    if (document.getElementsByName('torchCtrl')[0].checked)
+    if (torchSelector[0].checked)
     {
         newConstraints.advanced[0].torch = "false";
     }
-    else if (document.getElementsByName('torchCtrl')[1].checked)
+    else if (torchSelector[1].checked)
     {
         newConstraints.advanced[0].torch = "true";
     }
