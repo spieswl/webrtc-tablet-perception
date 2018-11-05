@@ -10,8 +10,9 @@ var targetFrequency = 10;
 var targetPhaseShift = 0;
 var targetDirection = 0;
 var patternInterval;
-var frequencyArray = [ 1, 2, 5, 10, 20, 50, 100 ];
+var frequencyArray = [ 1, 2, 4, 6, 8, 10 ];
 var sequenceCounter = 0;
+var remoteDirection;
 var remoteFrequency;
 var remotePhaseShift;
 
@@ -183,10 +184,14 @@ socket.on('apply_response', function(boolean)
     else                    { console.log('CLIENT: Remote client unable to update user media track with requested settings!'); }
 });
 
-socket.on('sequence_data', function(sequenceParam1, sequenceParam2)
+socket.on('sequence_data', function(sequenceParam1, sequenceParam2, sequenceParam3)
 {
-    remoteFrequency = sequenceParam1;
-    remotePhaseShift = sequenceParam2;
+    if      (sequenceParam1 === 0)  { remoteDirection = "V"; }
+    else if (sequenceParam1 === 1)  { remoteDirection = "H"; }
+    else                            { remoteDirection = ""; }
+
+    remoteFrequency = sequenceParam2;
+    remotePhaseShift = sequenceParam3;
 });
 
 socket.on('disconnect', function(reason)
@@ -380,7 +385,7 @@ function renderIncomingPhoto(data)
 
     let newImgLink = document.createElement('a');
     newImgLink.href = dataURL;
-    newImgLink.download = "f" + remoteFrequency + "_ps" + remotePhaseShift + "_img" + imageRcvCount + "_" + dateString + ".png";
+    newImgLink.download = remoteDirection + "_f" + remoteFrequency + "_ps" + remotePhaseShift + "_img" + imageRcvCount + "_" + dateString + ".png";
     newImgLink.click();
 
     // Update the global image counter (refreshes on load)
@@ -754,6 +759,7 @@ function initPattern()
 
         clearInterval(patternInterval);
 
+        targetDirection = 0;
         targetPhaseShift = 0;
         targetFrequency = 0;
         sequenceCounter = 0;
@@ -798,7 +804,7 @@ function cyclePattern()
 
     setTimeout(function()
     {
-        socket.emit('sequence_data', targetFrequency, imageSendCount);
+        socket.emit('sequence_data', targetDirection, targetFrequency, imageSendCount);
 
         sendImage();
         imageSendCount++;
@@ -809,10 +815,17 @@ function cyclePattern()
             targetPhaseShift = 0;
             sequenceCounter++;
 
-            if (sequenceCounter === frequencyArray.length)      // End of capture sequence for all frequencies
+            if (sequenceCounter === frequencyArray.length)      // End of capture sequence for all frequencies in a particular direction
             {
-                clearInterval(patternInterval);
-                setTimeout(function() { showPattern(2, 0, 0); }, 500);
+                if (targetDirection === 1)                      // End of capture sequence for both directions
+                {
+                    targetDirection = 0;
+                    clearInterval(patternInterval);
+                    setTimeout(function() { showPattern(2, 0, 0); }, 500);
+                }
+
+                sequenceCounter = 0;
+                targetDirection++;
             }
         }
     }, 1000);

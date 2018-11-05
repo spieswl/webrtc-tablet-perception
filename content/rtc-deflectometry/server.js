@@ -112,10 +112,10 @@ io.on('connection', function(socket)
         socket.broadcast.emit('apply_response', boolean);
     });
 
-    socket.on('sequence_data', function(sequenceParam1, sequenceParam2)
+    socket.on('sequence_data', function(sequenceParam1, sequenceParam2, sequenceParam3)
     {
         log('Client ID ' + socket.id + ' transmitted sequence data to home device.');
-        socket.broadcast.emit('sequence_data', sequenceParam1, sequenceParam2);
+        socket.broadcast.emit('sequence_data', sequenceParam1, sequenceParam2, sequenceParam3);
     });
 
     socket.on('disconnect', function(reason)
