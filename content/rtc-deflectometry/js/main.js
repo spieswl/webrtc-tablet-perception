@@ -841,7 +841,7 @@ function generateVerticalPattern(context, width, height, ratio, frequency, phase
 
     for (var i = 0; i < (width * 4); i += 4)
     {
-        value = ((127.5 * Math.sin((2 * Math.PI * frequency * i * ratio / (width * 4)) + phaseShift)) + 127.5);
+        value = ((127.5 * Math.sin((2 * Math.PI * frequency * i * ratio / (width * 4)) + phaseShift)) + 127.5);     // Same formula for both Vertical patterns and Horizontal patterns
         
         for (var k = 0; k < height; k += 1)
         {
@@ -865,7 +865,7 @@ function generateHorizontalPattern(context, width, height, ratio, frequency, pha
 
     for (var k = 0; k < height; k += 1)
     {
-        value = ((127.5 * Math.sin((2 * Math.PI * frequency * k * ratio / height) + phaseShift)) + 127.5);
+        value = ((127.5 * Math.sin((2 * Math.PI * frequency * k * ratio / (width * 4)) + phaseShift)) + 127.5);      // Same formula for both Vertical patterns and Horizontal patterns
 
         for (var i = 0; i < (width * 4); i += 4)
         {
