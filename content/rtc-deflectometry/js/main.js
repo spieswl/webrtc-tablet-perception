@@ -5,6 +5,9 @@ var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 var sequenceInterval;
 var sequenceCounter = 0;
 
+var room = window.location.hash.substring(1);   // Create a random room if not already present in the URL.
+if (!room)  { room = window.location.hash = randomToken(); }
+
 // Device-specific variables
 var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
 var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio);
@@ -65,9 +68,9 @@ var standardConstraints =
     {
         deviceId:               "",
 
-        width:                  {   min: 320,   exact: 640,     max: 1920   },
-        height:                 {   min: 240,   exact: 480,     max: 1080   },
-        frameRate:              {   min: 0,     exact: 30,      max: 60     },
+        width:                  {   min: 320,   ideal: 640,     max: 1920   },
+        height:                 {   min: 240,   ideal: 480,     max: 1080   },
+        frameRate:              {   min: 0,     ideal: 30,      max: 60     },
 
         facingMode:             {   ideal: "user"   }
     }
@@ -75,6 +78,28 @@ var standardConstraints =
 
 
 ///////////////////////////// STANDARD FUNCTIONS ///////////////////////////////
+
+function initialize()
+{
+    // Initial gUM scan
+    navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function()
+    {
+        supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+        console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
+
+        navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(startVideo).catch(handleError);
+    })
+    .catch(handleError);
+
+    // Join the requested socket.io room
+    socket.emit('create or join', room);
+
+    window.addEventListener('unload', function()
+    {
+        console.log(`CLIENT: Unloading window. Notifying peers in ${room}.`);
+        socket.emit('bye', room);
+    });
+}
 
 function connect()
 //  TODO: Add function description.
@@ -115,6 +140,7 @@ function gotStream(stream)
   */
 {
     localStream = stream;
+    var streamTracks = stream.getVideoTracks();
 
     var localVideo = document.createElement('video');
     localVideo.srcObject = localStream;
@@ -123,9 +149,7 @@ function gotStream(stream)
         window.setTimeout(() => (getStreamFeedback(localStream)), 500);
     });
 
-    console.log('DEBUG : ', localStream.getVideoTracks()[0]);
-
-    localImageCapture = new ImageCapture(localStream.getVideoTracks()[0]);
+    localImageCapture = new ImageCapture(streamTracks[0]);
 }
 
 function requestSequenceFromRemote()
@@ -286,7 +310,26 @@ function applyNewConstraintsFromRemote(constraints)
     let track = localStream.getVideoTracks()[0];
 
     track.applyConstraints(constraints).then(function()
+    {// Initial gUM scan
+navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function()
+{
+    supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+    console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
+
+    navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(function()
     {
+        startVideo();
+    });
+})
+.catch(handleError);
+
+socket.emit('create or join', room);
+
+window.addEventListener('unload', function()
+{
+    console.log(`CLIENT: Unloading window. Notifying peers in ${room}.`);
+    socket.emit('bye', room);
+});
         console.log('CLIENT: Newly applied constraints -> ', constraints);
 
         getStreamFeedback(localStream);
@@ -535,30 +578,4 @@ function handleError(error)
 
 //////////////////////// \/ INITIALIZER BEGINS HERE \/ /////////////////////////
 
-// Create a random room if not already present in the URL.
-var room = window.location.hash.substring(1);
-if (!room)
-{
-    room = window.location.hash = randomToken();
-}
-
-// Initial gUM scan
-navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function()
-{
-    supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-    console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
-
-    navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(function()
-    {
-        startVideo();
-    });
-})
-.catch(handleError);
-
-socket.emit('create or join', room);
-
-window.addEventListener('unload', function()
-{
-    console.log(`CLIENT: Unloading window. Notifying peers in ${room}.`);
-    socket.emit('bye', room);
-});
+initialize();
