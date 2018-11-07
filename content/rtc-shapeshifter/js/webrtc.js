@@ -1,4 +1,15 @@
+/**
+  * TODO: Add file description.
+  * 
+  * 
+  */
+
 'use strict';
+
+// WebRTC variables
+var peerConn;
+var dataChannel;
+
 
 /////////////////////////////// WEBRTC FUNCTIONS ///////////////////////////////
 
@@ -92,7 +103,7 @@ function receiveDataChromeFactory()
   */
 {
     var buf, count;
-  
+
     return function onmessage(event)
     {
         if (typeof event.data === 'string')
@@ -102,13 +113,13 @@ function receiveDataChromeFactory()
             console.log('CLIENT: Expecting a total of ' + buf.byteLength + ' bytes.');
             return;
         }
-  
+
         var data = new Uint8ClampedArray(event.data);
         buf.set(data, count);
-  
+
         count += data.byteLength;
         console.log('CLIENT: Byte count -> ' + count);
-  
+
         if (count === buf.byteLength)
         {
             console.log('CLIENT: Done. Rendering image.');
@@ -134,11 +145,11 @@ function receiveDataFirefoxFactory()
             console.log('CLIENT: Expecting a total of ' + total + ' bytes.');
             return;
         }
-  
+
         parts.push(event.data);
         count += event.data.size;
         console.log('CLIENT: Got ' + event.data.size + ' byte(s), ' + (total - count) + ' to go.');
-  
+
         if (count === total)
         {
             console.log('CLIENT: Assembling payload');
