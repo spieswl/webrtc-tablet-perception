@@ -310,26 +310,7 @@ function applyNewConstraintsFromRemote(constraints)
     let track = localStream.getVideoTracks()[0];
 
     track.applyConstraints(constraints).then(function()
-    {// Initial gUM scan
-navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function()
-{
-    supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-    console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
-
-    navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(function()
     {
-        startVideo();
-    });
-})
-.catch(handleError);
-
-socket.emit('create or join', room);
-
-window.addEventListener('unload', function()
-{
-    console.log(`CLIENT: Unloading window. Notifying peers in ${room}.`);
-    socket.emit('bye', room);
-});
         console.log('CLIENT: Newly applied constraints -> ', constraints);
 
         getStreamFeedback(localStream);
