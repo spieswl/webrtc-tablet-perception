@@ -71,8 +71,6 @@ var standardConstraints =
         width:                  {   min: 320,   ideal: 640,     max: 1920   },
         height:                 {   min: 240,   ideal: 480,     max: 1080   },
         frameRate:              {   min: 0,     ideal: 30,      max: 60     },
-
-        facingMode:             {   ideal: "user"   }
     }
 };
 
@@ -130,7 +128,7 @@ function populateDeviceList(devices)
         if (devices[k].kind === 'videoinput')   { supportedDevices.push(devices[k].deviceId); }
     }
 
-    // Update normal constraints with deviceID after the initial query
+    // Typ. "user-facing" is the first value in the array while "environment-facing" is the second value.
     standardConstraints.video.deviceId = supportedDevices[0];
 }
 
