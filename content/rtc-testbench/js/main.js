@@ -1,186 +1,183 @@
+/**
+  * TODO: Add file description.
+  * 
+  * 
+  */
+
 'use strict';
 
-// Special constants and variables
+// Standard constants and variables
 var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-var phaseShift = 0;
-var patternInterval;
-
 // Button elements
-const cyclePatternButton = document.querySelector('button#cyclePattern');
-cyclePatternButton.onclick = function()
+const connectButton = document.querySelector('button#connect');
+const readyButton = document.querySelector('button#ready');
+
+connectButton.onclick = connect;
+readyButton.onclick = emitReady;
+
+// WebRTC features & elements
+var remoteVideoCanvas = document.querySelector('video#inFeed');
+
+var supportedDevices = [];
+var supportedConstraints;
+
+var localImageCapture;
+var localStream;
+var localConstraints;
+var localSettings;
+var localCapabilities;
+var remoteStream;
+
+// Starting constraints
+var standardConstraints = 
 {
-    enterFullscreenState();
-    initPattern();
-    patternInterval = setInterval(cyclePattern, 2000);
-}
+    audio: false,
+    video: 
+    {
+        deviceId:               "",
 
-// Displayed page elements
-var pattern;
-var overlay;
-
-// System-specific constants
-var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
-var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio);
+        width:                  {   min: 320,   ideal: 640,     max: 1920   },
+        height:                 {   min: 240,   ideal: 480,     max: 1080   },
+        frameRate:              {   min: 0,     ideal: 30,      max: 60     },
+    }
+};
 
 
 ///////////////////////////// STANDARD FUNCTIONS ///////////////////////////////
 
-function initPattern()
+function initialize()
+{
+    // Initial gUM scan
+    navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function()
+    {
+        supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+        console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
+
+        navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(startVideo).catch(handleError);
+    })
+    .catch(handleError);
+
+    window.addEventListener('unload', function()
+    {
+        console.log(`CLIENT: Unloading window.`);
+        socket.emit('bye');
+    });
+}
+
+function connect()
+//  TODO: Add function description.
+{
+    connectButton.disabled = true;
+
+    createPeerConnection(isInitiator, configuration);
+}
+
+function startVideo()
+//  TODO: Add function description.
+{
+    navigator.mediaDevices.getUserMedia(standardConstraints).then(gotStream).catch(handleError);
+}
+
+function stopVideo()
+//  TODO: Add function description.
+{
+    localStream.getTracks().forEach(track => { track.stop(); });
+}
+
+function populateDeviceList(devices)
+{
+    for (let k = 0; k !== devices.length; ++k)
+    {
+        if (devices[k].kind === 'videoinput')   { supportedDevices.push(devices[k].deviceId); }
+    }
+
+    // Typ. "user-facing" is the first value in the array while "environment-facing" is the second value.
+    standardConstraints.video.deviceId = supportedDevices[1];
+}
+
+function gotStream(stream)
 /**
   * TODO: Add function description.
   */
 {
-    // Overlay setup
-    overlay = document.createElement('div');
-    overlay.setAttribute("id", "overlay");
-    overlay.style.cssText = 'position: fixed; top: 0; left: 0; height: 100%; width: 100%; z-index:100;';
+    localStream = stream;
+    var streamTracks = stream.getVideoTracks();
 
-    // Pattern setup
-    pattern = document.createElement('canvas');
-    pattern.width = effScreenWidth;
-    pattern.height = effScreenHeight;
-    pattern.style.cssText = 'max-width: none; max-height: none';
-
-    // Add a listener to escape the FullScreen status (requires an overlay w/ pattern to work properly)
-    pattern.addEventListener("click", function()
+    var localVideo = document.createElement('video');
+    localVideo.srcObject = localStream;
+    localVideo.addEventListener('loadedmetadata', (e) =>
     {
-        var cleaner = document.querySelector("div#overlay");
-        cleaner.parentNode.removeChild(cleaner);
-        
-        exitFullScreenState();
-
-        clearInterval(patternInterval);
+        window.setTimeout(() => (getStreamFeedback(localStream)), 500);
     });
 
-    // Start out with a blank pattern
-    var patCtx = pattern.getContext('2d');
-    var patData = generateBlankPattern(patCtx, effScreenWidth, effScreenHeight);
-    patCtx.putImageData(patData, 0, 0);
-
-    overlay.appendChild(pattern);
-
-    document.body.appendChild(overlay);
+    localImageCapture = new ImageCapture(streamTracks[0]);
 }
 
-function cyclePattern()
+function getStreamFeedback(stream)
 /**
   * TODO: Add function description.
   */
 {
-    showPattern(0, 10, phaseShift);
+    let track = stream.getVideoTracks()[0];
 
-    phaseShift += (Math.PI / 2);
-}
+    localConstraints = track.getConstraints();
+    console.log(`CLIENT: Current track constraints ->`, localConstraints);
 
-function showPattern(direction, frequency,  phaseShift)
-/**
-  * TODO: Add function description.
-  */
-{
-    var patCtx = pattern.getContext('2d');
-    var patData;
-    
-    if      (direction === 0)   { patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
-    else if (direction === 1)   { patData = generateHorizontalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
-    else                        { patData = generateBlankPattern(patCtx, effScreenWidth, effScreenHeight); }
+    localSettings = track.getSettings();
+    console.log(`CLIENT: Current track settings ->`, localSettings);
 
-    patCtx.putImageData(patData, 0, 0);
-}
-
-function generateVerticalPattern(context, width, height, ratio, freq, phaseShift)
-/**
-  * TODO: Add function description.
-  */
-{
-    var patternData = context.createImageData(width, height);
-    var value = 0;
-
-    for (var i = 0; i < (width * 4); i += 4)
+    // This code handles converting MediaSettingsRange objects into normal objects, so they can be transferred over the Socket.io connection without being mangled.
+    localCapabilities = {};
+    let tempCapabilitiesObj = Object.entries(track.getCapabilities());
+    for (var k = 0; k < tempCapabilitiesObj.length; k++)
     {
-        for (var k = 0; k < height; k += 1)
+        var tempValue = {};
+        var tempName = tempCapabilitiesObj[k][0].toString();
+
+        if (tempCapabilitiesObj[k][1].toString() === '[object MediaSettingsRange]')
         {
-            value = ((127.5 * Math.sin((2 * Math.PI * freq * i * ratio / (width * 4)) + phaseShift)) + 127.5);
-
-            patternData.data[(4*k*width)+i+0] = value;
-            patternData.data[(4*k*width)+i+1] = value;
-            patternData.data[(4*k*width)+i+2] = value;
-            patternData.data[(4*k*width)+i+3] = 255;
+            tempValue = Object.assign({max: tempCapabilitiesObj[k][1].max, min: tempCapabilitiesObj[k][1].min, step: tempCapabilitiesObj[k][1].step}, tempValue);
         }
-    }
-
-    return patternData;
-}
-
-function generateHorizontalPattern(context, width, height, ratio, freq, phaseShift)
-/**
-  * TODO: Add function description.
-  */
-{
-    var patternData = context.createImageData(width, height);
-    var value = 0;
-
-    for (var k = 0; k < height; k += 1)
-    {
-        value = ((127.5 * Math.sin((2 * Math.PI * freq * k * ratio / height) + phaseShift)) + 127.5);
-
-        for (var i = 0; i < (width * 4); i += 4)
+        else if (tempCapabilitiesObj[k][1].toString() === '[object Object]')
         {
-            patternData.data[(4*k*width)+i+0] = value;
-            patternData.data[(4*k*width)+i+1] = value;
-            patternData.data[(4*k*width)+i+2] = value;
-            patternData.data[(4*k*width)+i+3] = 255;
+            tempValue = Object.assign({max: tempCapabilitiesObj[k][1].max, min: tempCapabilitiesObj[k][1].min}, tempValue);
         }
-    }
+        else
+        {
+            tempValue = tempCapabilitiesObj[k][1];
+        }
 
-    return patternData;
+        localCapabilities = Object.assign({[tempName]: tempValue}, localCapabilities);
+    }
+    console.log(`CLIENT: Current track capabilities ->`, localCapabilities);
 }
 
-function generateBlankPattern(context, width, height)
+function emitReady()
+{
+    socket.emit('ready');
+}
+
+/////////////////////////////// UTILITY FUNCTIONS //////////////////////////////
+
+function handleError(error)
 /**
   * TODO: Add function description.
   */
 {
-    var patternData = context.createImageData(width, height);
-
-    for (var i = 0; i < (width * height * 4); i += 4)
+    if (typeof error === 'string')
     {
-        patternData.data[i+0] = 0;
-        patternData.data[i+1] = 0;
-        patternData.data[i+2] = 0;
-        patternData.data[i+3] = 255;
+        console.log(error);
     }
+    else
+    {
+        const message = `CLIENT: Error ->  ${error.name} : ${error.message}`;
 
-    return patternData;
+        alert(message);
+        console.log(message);
+    }
 }
 
-function enterFullscreenState()
-/**
-  * TODO: Add function description.
-  */
-{
-    if      (document.documentElement.requestFullScreen)            { document.documentElement.requestFullScreen(); }
-    else if (document.documentElement.mozRequestFullScreen)         { document.documentElement.mozRequestFullScreen(); }
-    else if (document.documentElement.webkitRequestFullScreen)      { document.documentElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT); }
-}
+//////////////////////// \/ INITIALIZER BEGINS HERE \/ /////////////////////////
 
-function exitFullScreenState()
-/**
-  * TODO: Add function description.
-  */
-{
-    if      (document.cancelFullScreen)         { document.cancelFullScreen(); }
-    else if (document.msCancelFullScreen)       { document.msCancelFullScreen(); }
-    else if (document.mozCancelFullScreen)      { document.mozCancelFullScreen(); }
-    else if (document.webkitCancelFullScreen)   { document.webkitCancelFullScreen(); }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-alert('Screen Width : ' + window.screen.width);
-alert('Screen Height : ' + window.screen.height);
-alert('Inner Width : ' + window.innerWidth);
-alert('Inner Height : ' + window.innerHeight);
-alert('Device Pixel Ratio : ' + devicePixelRatio);
-alert('Effective Screen Width : ' + effScreenWidth);
-alert('Effective Screen Height : ' + effScreenHeight);
+initialize();

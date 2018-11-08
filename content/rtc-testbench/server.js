@@ -1,6 +1,5 @@
 'use strict';
 
-const os = require('os');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
@@ -16,82 +15,42 @@ var options = {
 const https_app = https.createServer(options, function (req, res)
 {
     fileServer.serve(req, res);
-}).listen(443);
+})
+.listen(443);
 
 // HTTP redirect to HTTPS
 const http_redir = http.createServer(function (req, res)
 {
     res.writeHead(301, { "Location": "https://" + req.headers['host'] + req.url });
     res.end();
-}).listen(80);
+})
+.listen(80);
 
 // Socket.IO
 var io = require('socket.io').listen(https_app);
+
 io.on('connection', function(socket)
 {
-    // convenience function to log server messages on the client
+    // Convenience function to log server messages on the terminal
     function log()
     {
         var array = ['SERVER:'];
         array.push.apply(array, arguments);
         socket.emit('log', array);
+
         console.log('SERVER:', arguments);
     }
 
-    socket.on('ipaddr', function()
+    socket.on('ready', function()
     {
-        var ifaces = os.networkInterfaces();
-        for (var dev in ifaces)
-        {
-            ifaces[dev].forEach(function(details)
-            {
-                if (details.family === 'IPv4' && details.address !== '127.0.0.1')
-                {
-                    socket.emit('ipaddr', details.address);
-                }
-            });
-        }
-    });
-
-    socket.on('create or join', function(room)
-    {
-        log('Received request to create or join room ' + room);
-    
-        var clientsInRoom = io.sockets.adapter.rooms[room];
-        var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
-        
-        if (numClients === 0)
-        {
-            socket.join(room);
-            log('Client ID ' + socket.id + ' created room ' + room);
-            socket.emit('created', room, socket.id);
-        }
-        else if (numClients === 1)
-        {
-            log('Client ID ' + socket.id + ' joined room ' + room);
-            socket.join(room);
-            socket.emit('joined', room, socket.id);
-            io.sockets.in(room).emit('ready', room);
-            socket.broadcast.emit('ready', room);
-        }
-        else
-        {
-            socket.emit('full', room);
-        }
-
-        log('Room ' + room + ' now has ' + io.sockets.adapter.rooms[room].length + ' client(s)');
+        log('Client ID ' + socket.id + ' signalled READY!');
+        socket.broadcast.emit('ready');
     });
 
     socket.on('message', function(message)
     {
-        log('Client said: ', message);
+        log('Client ID ' + socket.id + ' signalled: ', message);
         socket.broadcast.emit('message', message);
-    });
-
-    socket.on('imagerequest', function()
-    {
-        log('Client requested an image.');
-        socket.broadcast.emit('imagerequest');
     });
 
     socket.on('disconnect', function(reason)
@@ -102,10 +61,10 @@ io.on('connection', function(socket)
 
     socket.on('bye', function(room)
     {
-        log(`Peer said bye on room ${room}.`);
+        log(`Client said bye!`);
     });
 })
 
 // Misc.
 console.log("SERVER: HTTP redirecting to HTTPS on port 443...");
-console.log("SERVER: WebRTC Page is up!");
+console.log("SERVER: WebRTC page is up!");
