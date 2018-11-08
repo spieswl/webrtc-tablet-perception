@@ -7,12 +7,8 @@
 'use strict';
 
 // Standard constants and variables
-var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 var sequenceInterval;
 var sequenceCounter = 0;
-
-var room = window.location.hash.substring(1);   // Create a random room if not already present in the URL.
-if (!room)  { room = window.location.hash = randomToken(); }
 
 // Device-specific variables
 
@@ -20,11 +16,13 @@ if (!room)  { room = window.location.hash = randomToken(); }
 
 // Button elements
 const connectButton = document.querySelector('button#connect');
+const readyButton = document.querySelector('button#ready');
 const requestSequenceButton = document.querySelector('button#requestSequence');
 const requestConfigButton = document.querySelector('button#requestConfig');
 const applyConfigButton = document.querySelector('button#applyConfig');
 
 connectButton.onclick = connect;
+readyButton.onclick = emitReady;
 requestSequenceButton.onclick = requestSequenceFromRemote;
 requestConfigButton.onclick = requestConfigFromRemote;
 applyConfigButton.onclick = applyConfigToRemote;
@@ -72,19 +70,16 @@ function initialize()
     navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function()
     {
         supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-        console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
+        console.log(`CLIENT : Locally supported constraints -> `, supportedConstraints);
 
         navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(startVideo).catch(handleError);
     })
     .catch(handleError);
 
-    // Join the requested socket.io room
-    socket.emit('create or join', room);
-
     window.addEventListener('unload', function()
     {
-        console.log(`CLIENT: Unloading window. Notifying peers in ${room}.`);
-        socket.emit('bye', room);
+        console.log(`CLIENT: Unloading window.`);
+        socket.emit('bye');
     });
 }
 
@@ -92,6 +87,7 @@ function connect()
 //  TODO: Add function description.
 {
     connectButton.disabled = true;
+
     createPeerConnection(isInitiator, configuration);
 }
 
@@ -172,7 +168,7 @@ function sendImage()
     
         if (!dataChannel)
         {
-            handleError('ERROR: Connection has not been initiated. Get two peers in the same room first!');
+            handleError('ERROR: Connection has not been initiated.!');
             return;
         }
         else if (dataChannel.readyState === 'closed')
@@ -273,7 +269,7 @@ function applyConfigToRemote()
   * TODO: Add function description.
   */
 {
-    let newSettings = assembleNewConfigForRemote();
+    let newSettings = assembleNewConfigForRemote(remoteCapabilities);
 
     console.log('CLIENT: Applying new configuration based on remote request ->', newSettings);
 
@@ -307,15 +303,12 @@ function captureSequence()
     sendImage();
 }
 
-/////////////////////////////// UTILITY FUNCTIONS //////////////////////////////
-
-function randomToken()
-/**
-  * TODO: Add function description.
-  */
+function emitReady()
 {
-    return Math.floor((1 + Math.random()) * 1e16).toString(16).substring(1);
+    socket.emit('ready');
 }
+
+/////////////////////////////// UTILITY FUNCTIONS //////////////////////////////
 
 function handleError(error)
 /**

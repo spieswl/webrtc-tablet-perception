@@ -1,6 +1,5 @@
 'use strict';
 
-const os = require('os');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
@@ -42,32 +41,10 @@ io.on('connection', function(socket)
         console.log('SERVER:', arguments);
     }
 
-    socket.on('create or join', function(room)
+    socket.on('ready', function()
     {
-        log('Received request to create or join room ' + room + '.');
-    
-        var clientsInRoom = io.sockets.adapter.rooms[room];
-        var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
-        
-        if (numClients === 0)
-        {
-            socket.join(room);
-            log('Client ID ' + socket.id + ' created room ' + room + '.');
-            socket.emit('created', room, socket.id);
-        }
-        else if (numClients === 1)
-        {
-            log('Client ID ' + socket.id + ' joined room ' + room + '.');
-            socket.join(room);
-            socket.emit('joined', room, socket.id);
-            io.sockets.in(room).emit('ready', room);
-        }
-        else
-        {
-            socket.emit('full', room);
-        }
-
-        log('Room ' + room + ' now has ' + io.sockets.adapter.rooms[room].length + ' client(s).');
+        log('Client ID ' + socket.id + ' signalled READY!');
+        socket.broadcast.emit('ready');
     });
 
     socket.on('message', function(message)
@@ -120,7 +97,7 @@ io.on('connection', function(socket)
 
     socket.on('bye', function(room)
     {
-        log(`Peer said bye on room ${room}.`);
+        log(`Client said bye!`);
     });
 })
 
