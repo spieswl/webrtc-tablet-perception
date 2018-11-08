@@ -219,7 +219,7 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
     applyConfigButton.disabled = false;
 }
 
-function assembleNewConfigForRemote(capabilities)
+function assembleNewConfigForRemote()
 /**
   * TODO: Add function description.
   */

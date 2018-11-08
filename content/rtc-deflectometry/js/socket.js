@@ -6,7 +6,8 @@
 
 'use strict';
 
-var socket = io();      // Establishing a socket connection
+// Establishing a socket connection
+var socket = io();
 
 // Networking variables
 var configuration = null;
@@ -15,30 +16,11 @@ var isInitiator;
 
 ////////////////////////////// SOCKET.IO SIGNALS ///////////////////////////////
 
-socket.on('created', function(room, clientId)
-{
-    console.log('CLIENT: Created room -> ', room, ' | Client ID -> ', clientId);
-    isInitiator = true;
-});
-  
-socket.on('joined', function(room, clientId)
-{
-    console.log('CLIENT: Joined room -> ', room, ' | Client ID -> ', clientId);
-    isInitiator = false;
-});
-
 socket.on('ready', function()
 {
-    console.log('CLIENT: Socket is ready.');
-    if (isInitiator)    { connectButton.disabled = false; }
-    else                { connectButton.disabled = true; }
-});
-
-socket.on('full', function(room)
-{
-    alert('CLIENT: Room ' + room + ' is full. We will create a new room for you.');
-    window.location.hash = '';
-    window.location.reload();
+    console.log('CLIENT: Other client is signalling that it is ready!');
+    isInitiator = true;
+    connectButton.disabled = false;
 });
 
 socket.on('message', function(message)
@@ -110,15 +92,9 @@ socket.on('disconnect', function(reason)
     applyConfigButton.disabled = true;
 });
 
-socket.on('bye', function(room)
+socket.on('bye', function()
 {
-    console.log(`CLIENT: Peer leaving room ${room}.`);
-    
-    // If peer did not create the room, re-enter to be creator.
-    if (!isInitiator)
-    {
-        window.location.reload();
-    }
+    console.log(`CLIENT: Other client is leaving the system.`);
 });
 
 function signalingMessageCallback(message)
@@ -130,6 +106,7 @@ function signalingMessageCallback(message)
     {
         var desc = new RTCSessionDescription(message);
 
+        isInitiator = false;
         connect();
 
         peerConn.setRemoteDescription(desc);

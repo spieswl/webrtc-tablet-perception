@@ -235,7 +235,11 @@ function assembleNewConfigForRemote()
     else if (expSelector[1].checked)
     {
         newConstraints.advanced[0].exposureMode = "manual";
-        newConstraints.advanced[0].exposureCompensation = expCompSlider.value;
+
+        if (expCompSlider.disabled === false)
+        {
+            newConstraints.advanced[0].exposureCompensation = expCompSlider.value;
+        }
     }
 
     /* ----------------------------- ISO SETTING ---------------------------- */
@@ -256,7 +260,11 @@ function assembleNewConfigForRemote()
     else if (focusSelector[2].checked)
     {
         newConstraints.advanced[0].focusMode = "manual";
-        newConstraints.advanced[0].focusDistance = focusSlider.value;
+
+        if (focusSlider.disabled === false)
+        {
+            newConstraints.advanced[0].focusDistance = focusSlider.value;
+        }
     }
 
     /* -------------- WHITE BALANCE, COLOR TEMPERATURE SETTINGS ------------- */
@@ -267,7 +275,11 @@ function assembleNewConfigForRemote()
     else if (whtBalSelector[1].checked)
     {
         newConstraints.advanced[0].whiteBalanceMode = "manual";
-        newConstraints.advanced[0].colorTemperature = colorTempSlider.value;
+        
+        if (colorTempSlider.disabled === false)
+        {
+            newConstraints.advanced[0].colorTemperature = colorTempSlider.value;
+        }
     }
     else if (whtBalSelector[2].checked)
     {

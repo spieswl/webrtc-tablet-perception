@@ -149,6 +149,9 @@ function requestConfigFromRemote()
 }
 
 function sendImage()
+/**
+  * TODO: Add function description.
+  */
 {
     localImageCapture.grabFrame().then(imageBitmap =>
     {
@@ -199,6 +202,9 @@ function sendImage()
 }
 
 function renderIncomingPhoto(data)
+/**
+  * TODO: Add function description.
+  */
 {
     // Populating the Remote Image div
     var canvas = document.createElement('canvas');

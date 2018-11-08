@@ -1,12 +1,14 @@
+/**
+  * TODO: Add file description.
+  * 
+  * 
+  */
+
 'use strict';
 
 // Standard constants and variables
-var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 var sequenceInterval;
 var sequenceCounter = 0;
-
-var room = window.location.hash.substring(1);   // Create a random room if not already present in the URL.
-if (!room)  { room = window.location.hash = randomToken(); }
 
 // Device-specific variables
 var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
@@ -25,12 +27,14 @@ var overlay;
 
 // Button elements
 const connectButton = document.querySelector('button#connect');
+const readyButton = document.querySelector('button#ready');
 const requestSequenceButton = document.querySelector('button#requestSequence');
 const requestConfigButton = document.querySelector('button#requestConfig');
 const applyConfigButton = document.querySelector('button#applyConfig');
 const showPatternButton = document.querySelector('button#showPattern');
 
 connectButton.onclick = connect;
+readyButton.onclick = emitReady;
 requestSequenceButton.onclick = requestSequenceFromRemote;
 requestConfigButton.onclick = requestConfigFromRemote;
 applyConfigButton.onclick = applyConfigToRemote;
@@ -89,13 +93,10 @@ function initialize()
     })
     .catch(handleError);
 
-    // Join the requested socket.io room
-    socket.emit('create or join', room);
-
     window.addEventListener('unload', function()
     {
-        console.log(`CLIENT: Unloading window. Notifying peers in ${room}.`);
-        socket.emit('bye', room);
+        console.log(`CLIENT: Unloading window.`);
+        socket.emit('bye');
     });
 }
 
@@ -103,6 +104,7 @@ function connect()
 //  TODO: Add function description.
 {
     connectButton.disabled = true;
+
     createPeerConnection(isInitiator, configuration);
 }
 
@@ -322,6 +324,12 @@ function applyNewConstraintsFromRemote(constraints)
     });
 }
 
+function emitReady()
+{
+    socket.emit('ready');
+}
+
+
 function enterFullscreenState()
 /**
   * TODO: Add function description.
@@ -528,14 +536,6 @@ function generateWhitePattern(context, width, height)
 }
 
 /////////////////////////////// UTILITY FUNCTIONS //////////////////////////////
-
-function randomToken()
-/**
-  * TODO: Add function description.
-  */
-{
-    return Math.floor((1 + Math.random()) * 1e16).toString(16).substring(1);
-}
 
 function handleError(error)
 /**

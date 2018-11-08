@@ -6,7 +6,8 @@
 
 'use strict';
 
-var socket = io();      // Establishing a socket connection
+// Establishing a socket connection
+var socket = io();
 
 // Networking variables
 var configuration = null;
@@ -86,7 +87,7 @@ socket.on('disconnect', function(reason)
     applyConfigButton.disabled = true;
 });
 
-socket.on('bye', function(room)
+socket.on('bye', function()
 {
     console.log(`CLIENT: Other client is leaving the system.`);
 });
