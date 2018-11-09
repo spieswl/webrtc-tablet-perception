@@ -14,7 +14,7 @@ var sequenceCounter = 0;
 
 // Shapeshifter-specific variables
 
-// Button elements
+// Control elements
 const connectButton = document.querySelector('button#connect');
 const readyButton = document.querySelector('button#ready');
 const requestSequenceButton = document.querySelector('button#requestSequence');
@@ -46,20 +46,6 @@ var remoteCapabilities;
 
 var imageSendCount = 0;
 var imageRcvCount = 0;
-
-// Starting constraints
-var standardConstraints = 
-{
-    audio: false,
-    video: 
-    {
-        deviceId:               "",
-
-        width:                  {   min: 320,   ideal: 640,     max: 1920   },
-        height:                 {   min: 240,   ideal: 480,     max: 1080   },
-        frameRate:              {   min: 0,     ideal: 30,      max: 60     },
-    }
-};
 
 
 ///////////////////////////// STANDARD FUNCTIONS ///////////////////////////////
@@ -94,7 +80,7 @@ function connect()
 function startVideo()
 //  TODO: Add function description.
 {
-    navigator.mediaDevices.getUserMedia(standardConstraints).then(gotStream).catch(handleError);
+    navigator.mediaDevices.getUserMedia({video: {deviceId: supportedDevices[1]}}).then(gotStream).catch(handleError);
 }
 
 function stopVideo()
@@ -109,9 +95,6 @@ function populateDeviceList(devices)
     {
         if (devices[k].kind === 'videoinput')   { supportedDevices.push(devices[k].deviceId); }
     }
-
-    // Typ. "user-facing" is the first value in the array while "environment-facing" is the second value.
-    standardConstraints.video.deviceId = supportedDevices[1];
 }
 
 function gotStream(stream)
@@ -157,13 +140,13 @@ function sendImage()
     {
         // Local canvas for temporary image storage
         var canvas = document.createElement('canvas');
-        canvas.width = 640;     // imageBitmap.width;
-        canvas.height = 480;    // imageBitmap.height;
-        canvas.getContext('2d').drawImage(imageBitmap, 0, 0, 640, 480);
+        canvas.width = localSettings.width;     // imageBitmap.width;
+        canvas.height = localSettings.height;   // imageBitmap.height;
+        canvas.getContext('2d').drawImage(imageBitmap, 0, 0, localSettings.width, localSettings.height);
 
         // Split data channel message in chunks of this byte length.
         var CHUNK_LEN = 64000;
-        var img = canvas.getContext('2d').getImageData(0, 0, 640, 480);
+        var img = canvas.getContext('2d').getImageData(0, 0, localSettings.width, localSettings.height);
         var len = img.data.byteLength;
         var n = len / CHUNK_LEN | 0;
     
@@ -208,13 +191,13 @@ function renderIncomingPhoto(data)
 {
     // Populating the Remote Image div
     var canvas = document.createElement('canvas');
-    canvas.width = 640;
-    canvas.height = 480;
+    canvas.width = remoteSettings.width;
+    canvas.height = remoteSettings.height;
     canvas.classList.add('remoteImages');
     remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
     
     var context = canvas.getContext('2d');
-    var img = context.createImageData(640, 480);
+    var img = context.createImageData(remoteSettings.width, remoteSettings.height);
     img.data.set(data);
     context.putImageData(img, 0, 0);
 
@@ -305,11 +288,13 @@ function applyNewConstraintsFromRemote(constraints)
 }
 
 function captureSequence()
+//  TODO: Add function description.
 {
     sendImage();
 }
 
 function emitReady()
+//  TODO: Add function description.
 {
     socket.emit('ready');
 }

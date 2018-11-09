@@ -37,7 +37,7 @@ socket.on('image_request', function()
 socket.on('sequence_request', function()
 {
     console.log('CLIENT: Received request to start capture sequence. Starting capture sequence now...');
-    sequenceInterval = setInterval(cyclePattern, 6000);
+    sequenceInterval = setInterval(captureSequence, 6000);
 });
 
 socket.on('settings_request', function()

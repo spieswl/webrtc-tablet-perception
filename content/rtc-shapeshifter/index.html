@@ -49,9 +49,14 @@
             <div class="feedArray">
                 <strong>Camera 1 Settings</strong>
                 <div class="settings">
+                    <p>Stream Width (Height locked by Aspect Ratio) : <output id="widthValue" style="font-weight:bold"></output></p>
+                    <input name="widthSet" type="range" min="0" max="1920" value="" disabled>
+                </div>
+                <hr>
+                <div class="settings">
                     <p>Exposure Control :</p>
-                    <input type="radio" name="expCtrl" id="continuous" disabled>Automatic Control<br>
-                    <input type="radio" name="expCtrl" id="manual" disabled>Manual Control
+                    <input name="expCtrl" type="radio" id="continuous" disabled>Automatic Control<br>
+                    <input name="expCtrl" type="radio" id="manual" disabled>Manual Control
                 </div>
             
                 <div class="settings">
@@ -114,9 +119,9 @@
 
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="js/constraintControls.js" async></script>
-    <script src="js/socket.js" async></script>
-    <script src="js/webrtc.js" async></script>
+    <script src="js/constraintControls.js"></script>
+    <script src="js/socket.js"></script>
+    <script src="js/webrtc.js"></script>
     <script src="js/main.js" async></script>
 </body>
 </html>
