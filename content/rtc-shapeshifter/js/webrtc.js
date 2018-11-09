@@ -83,14 +83,12 @@ function onDataChannelCreated(channel)
     channel.onopen = function()
     {
         console.log('CLIENT: Data channel opened!');
-        requestSequenceButton.disabled = false;
         requestConfigButton.disabled = false;
     };
   
     channel.onclose = function()
     {
         console.log('CLIENT: Data channel closed!');
-        requestSequenceButton.disabled = true;
         requestConfigButton.disabled = true;
     }
 

@@ -26,13 +26,13 @@
     <div id="container">
         <h1><span>Shapeshifter</span></h1>
         <p>
-            Specifications: Rear camera (if possible), locked to 640x480.
+            Specifications: Environment-facing camera locked to 1280x720.
         </p>
-    
+
         <div class="buttons">
             <div id="buttonsLeft">
                 <button id="connect" disabled>Connect</button>
-                <button id="ready">Ready</button>
+                <button id="ready" disabled>Ready</button>
                 <button id="requestSequence" disabled>Start Sequence</button>
             </div>
             <div id="buttonsRight">
@@ -40,69 +40,74 @@
                 <button id="applyConfig" disabled>Apply Config</button>
             </div>
         </div>
-    
+        <div class="buttons">
+            <div id="buttonsRight">
+                <button id="toggleVideo">Toggle Video</button>
+            </div>
+        </div>
+
         <section>
-            <div class="feedArray" style="text-align: center;">
+            <div id="remoteVideo" class="feedArray" style="text-align: center;">
                 Remote Camera 1 (Environment-Facing)<br>
                 <video id="inFeed" playsinline autoplay muted></video><br>
             </div>
             <div class="feedArray">
                 <strong>Camera 1 Settings</strong>
-                <div class="settings">
+                <!-- <div class="settings">
                     <p>Stream Width (Height locked by Aspect Ratio) : <output id="widthValue" style="font-weight:bold"></output></p>
                     <input name="widthSet" type="range" min="0" max="1920" value="" disabled>
                 </div>
-                <hr>
+                <hr> -->
                 <div class="settings">
                     <p>Exposure Control :</p>
                     <input name="expCtrl" type="radio" id="continuous" disabled>Automatic Control<br>
                     <input name="expCtrl" type="radio" id="manual" disabled>Manual Control
                 </div>
-            
+
                 <div class="settings">
                     <p>Exposure Compensation : <output id="expCompValue" style="font-weight:bold"></output></p>
                     <input name="expCompSet" type="range" min="" value="" max="" disabled>
                 </div>
-                
+
                 <div class="settings">
                     <p>Exposure Time : <output id="expTimeValue" style="font-weight:bold"></output> <strong>DISABLED</strong></p>
                     <input name="expTimeSet" type="range" min="" value="" max="" disabled>
                 </div>
-            
+
                 <div class="settings">
                     <p>ISO Setting : <output id="isoValue" style="font-weight:bold"></output></p>
                     <input name="isoSet" type="range" min="" value="" max="" disabled>
                 </div>
-            
+
                 <div class="settings">
                     <p>Focus Control :</p>
                     <input name="focusCtrl" type="radio" id="continuous" disabled>Automatic Adjustment<br>
                     <input name="focusCtrl" type="radio" id="single-shot" disabled>Single-Shot Adjustment<br>
                     <input name="focusCtrl" type="radio" id="manual" disabled>Manual Adjustment
                 </div>
-            
+
                 <div class="settings">
                     <p>Focus Distance : <output id="focusDistValue" style="font-weight:bold"></output> <strong>DISABLED</strong></p>
                     <input name="focusDistSet" type="range" min="" value="" max="" disabled>
                 </div>
-            
+
                 <div class="settings">
                     <p>White Balance Control :</p>
                     <input name="whtBalCtrl" type="radio" id="continuous" disabled>Automatic Adjustment<br>
                     <input name="whtBalCtrl" type="radio" id="manual" disabled>Manual Adjustment<br>
                     <input name="whtBalCtrl" type="radio" id="none" disabled>No Adjustment
                 </div>
-            
+
                 <div class="settings">
                     <p>Color Temperature Setting : <output id="colorTempValue" style="font-weight:bold"></output></p>
                     <input name="colorTempSet" type="range" min="" value="" max="" disabled>
                 </div>
-            
+
                 <div class="settings">
                     <p>Zoom : <output id="zoomValue" style="font-weight:bold"></output></p>
                     <input name="zoomSet" type="range" min="" value="" max="" disabled>
                 </div>
-            
+
                 <div class="settings">
                     <p>Torch :</p>
                     <input name="torchCtrl" type="radio" id="off" disabled>Torch OFF<br>

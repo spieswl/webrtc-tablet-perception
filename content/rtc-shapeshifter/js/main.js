@@ -9,6 +9,7 @@
 // Standard constants and variables
 var sequenceInterval;
 var sequenceCounter = 0;
+var previewVideoHidden = false;
 
 // Device-specific variables
 
@@ -20,14 +21,17 @@ const readyButton = document.querySelector('button#ready');
 const requestSequenceButton = document.querySelector('button#requestSequence');
 const requestConfigButton = document.querySelector('button#requestConfig');
 const applyConfigButton = document.querySelector('button#applyConfig');
+const toggleVideoButton = document.querySelector('button#toggleVideo');
 
 connectButton.onclick = connect;
 readyButton.onclick = emitReady;
 requestSequenceButton.onclick = requestSequenceFromRemote;
 requestConfigButton.onclick = requestConfigFromRemote;
 applyConfigButton.onclick = applyConfigToRemote;
+toggleVideoButton.onclick = toggleVideoState;
 
 // WebRTC features & elements
+var remoteVideoDiv = document.querySelector('div#remoteVideo');
 var remoteVideoCanvas = document.querySelector('video#inFeed');
 var remoteImgs = document.querySelector('div#remoteImages');
 
@@ -51,13 +55,17 @@ var imageRcvCount = 0;
 ///////////////////////////// STANDARD FUNCTIONS ///////////////////////////////
 
 function initialize()
+/**
+  * TODO: Add function description.
+  */
 {
+    // Recover constrainable properties supported by the browser
+    supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+    console.log(`CLIENT : Locally supported constraints -> `, supportedConstraints);
+
     // Initial gUM scan
     navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function()
     {
-        supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-        console.log(`CLIENT : Locally supported constraints -> `, supportedConstraints);
-
         navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(startVideo).catch(handleError);
     })
     .catch(handleError);
@@ -80,7 +88,9 @@ function connect()
 function startVideo()
 //  TODO: Add function description.
 {
-    navigator.mediaDevices.getUserMedia({video: {deviceId: supportedDevices[1]}}).then(gotStream).catch(handleError);
+    navigator.mediaDevices.getUserMedia({video: {width: {exact: 1280}, deviceId: supportedDevices[0]}}).then(gotStream).catch(handleError);
+
+    readyButton.disabled = false;
 }
 
 function stopVideo()
@@ -90,6 +100,7 @@ function stopVideo()
 }
 
 function populateDeviceList(devices)
+//  TODO: Add function description.
 {
     for (let k = 0; k !== devices.length; ++k)
     {
@@ -140,8 +151,8 @@ function sendImage()
     {
         // Local canvas for temporary image storage
         var canvas = document.createElement('canvas');
-        canvas.width = localSettings.width;     // imageBitmap.width;
-        canvas.height = localSettings.height;   // imageBitmap.height;
+        canvas.width = localSettings.width;
+        canvas.height = localSettings.height;
         canvas.getContext('2d').drawImage(imageBitmap, 0, 0, localSettings.width, localSettings.height);
 
         // Split data channel message in chunks of this byte length.
@@ -297,6 +308,15 @@ function emitReady()
 //  TODO: Add function description.
 {
     socket.emit('ready');
+}
+
+function toggleVideoState()
+//  TODO: Add function description.
+{
+    previewVideoHidden = !previewVideoHidden;
+
+    if (previewVideoHidden) { remoteVideoDiv.style.display = "none"; }
+    else                    { remoteVideoDiv.style.display = "block"; }
 }
 
 /////////////////////////////// UTILITY FUNCTIONS //////////////////////////////

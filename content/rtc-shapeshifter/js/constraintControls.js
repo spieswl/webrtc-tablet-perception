@@ -7,8 +7,8 @@
 'use strict';
 
 // Settings control elements
-const widthSlider = document.querySelector('input[name="widthSet"]');
-const widthValue = document.querySelector('output[id="widthValue"]');
+/* const widthSlider = document.querySelector('input[name="widthSet"]');
+const widthValue = document.querySelector('output[id="widthValue"]'); */
 
 const expSelector = document.getElementsByName('expCtrl');
 const expCompSlider = document.querySelector('input[name="expCompSet"]');
@@ -40,7 +40,7 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
     // to track.applyConstraints() in order to reflect the added (or removed) controls.
 
     /* ---------------------------- VIDEO WIDTH ----------------------------- */
-    if (settings.width)
+    /* if (settings.width)
     {
         widthSlider.value = settings.width;
         widthValue.innerHTML = widthSlider.value;
@@ -48,7 +48,7 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
         widthSlider.oninput = function(event) { widthValue.innerHTML = event.target.value; }
         
         widthSlider.disabled = false;
-    }
+    } */
 
     /* ------------------------ EXPOSURE CONTROL MODE ----------------------- */
     if ('exposureMode' in capabilities)
@@ -231,6 +231,7 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
     }
 
     applyConfigButton.disabled = false;
+    requestSequenceButton.disabled = false;
 }
 
 function assembleNewConfigForRemote(settings)
