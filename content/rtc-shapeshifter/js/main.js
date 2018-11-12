@@ -151,13 +151,13 @@ function sendImage()
     {
         // Local canvas for temporary image storage
         var canvas = document.createElement('canvas');
-        canvas.width = localSettings.width;
-        canvas.height = localSettings.height;
-        canvas.getContext('2d').drawImage(imageBitmap, 0, 0, localSettings.width, localSettings.height);
+        canvas.width = imageBitmap.width;
+        canvas.height = imageBitmap.height;
+        canvas.getContext('2d').drawImage(imageBitmap, 0, 0, imageBitmap.width, imageBitmap.height);
 
         // Split data channel message in chunks of this byte length.
         var CHUNK_LEN = 64000;
-        var img = canvas.getContext('2d').getImageData(0, 0, localSettings.width, localSettings.height);
+        var img = canvas.getContext('2d').getImageData(0, 0, imageBitmap.width, imageBitmap.height);
         var len = img.data.byteLength;
         var n = len / CHUNK_LEN | 0;
     
