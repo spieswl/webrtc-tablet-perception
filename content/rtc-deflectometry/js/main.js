@@ -16,6 +16,7 @@ var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
 var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio);
 
 // Deflectometry-specific variables and elements
+var requestedCamDirection = "user";
 var frequencyArray = [ 1, 2, 4, 6, 8, 10 ];
 var targetDirection = 0;
 var targetFrequency = 10;
@@ -52,8 +53,9 @@ var remoteVideoDiv = document.querySelector('div#remoteVideo');
 var remoteVideoCanvas = document.querySelector('video#inFeed');
 var remoteImgs = document.querySelector('div#remoteImages');
 
-var supportedDevices = [];
 var supportedConstraints;
+var supportedDevices;
+var videoDevices = [];
 
 var localImageCapture;
 var localStream;
@@ -68,17 +70,17 @@ var remoteCapabilities;
 var imageSendCount = 0;
 var imageRcvCount = 0;
 
-// Starting constraints
-var standardConstraints = 
+// Resolved constraints
+var resolvedConstraints = 
 {
-    audio: false,
     video: 
     {
-        deviceId:               "",
+        deviceId:   "",
 
-        width:                  {   min: 320,   ideal: 640,     max: 1920   },
-        height:                 {   min: 240,   ideal: 480,     max: 1080   },
-        frameRate:              {   min: 0,     ideal: 30,      max: 60     },
+        width:      { exact: "" },
+        height:     { exact: "" },
+
+        facingMode: requestedCamDirection
     }
 };
 
@@ -87,21 +89,51 @@ var standardConstraints =
 
 function initialize()
 {
-    // Initial gUM scan
-    navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function()
-    {
-        supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-        console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
+    // Initial gUM Scan
+    supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+    console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
 
-        navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(startVideo).catch(handleError);
-    })
-    .catch(handleError);
+    navigator.mediaDevices.enumerateDevices().then(function(devices)
+    {
+        supportedDevices = devices;
+
+        console.log(`CLIENT : Local devices -> `, supportedDevices);
+
+        for (let k = 0; k !== supportedDevices.length; ++k)
+        {
+            if (supportedDevices[k].kind === 'videoinput')   { videoDevices.push(supportedDevices[k].deviceId); }
+        }
+
+        recoverMaxVideo(videoDevices[0]);
+
+        navigator.mediaDevices.getUserMedia(resolvedConstraints).then(gotStream).catch(handleError);
+    });
 
     window.addEventListener('unload', function()
     {
         console.log(`CLIENT: Unloading window.`);
         socket.emit('bye');
     });
+}
+
+function recoverMaxVideo(device)
+{
+    var settings;
+    var capabilities;
+
+    navigator.mediaDevices.getUserMedia({video: {deviceId: device}}).then(function(stream)
+    {
+        settings = stream.getVideoTracks()[0].getSettings();
+        capabilities = stream.getVideoTracks()[0].getCapabilities();
+
+        resolvedConstraints.video.deviceId = settings.deviceId;
+        resolvedConstraints.video.width.exact = capabilities.width.max;
+        resolvedConstraints.video.height.exact = capabilities.height.max;
+
+        console.log("CLIENT: Resolved constraints after selection ->", resolvedConstraints);
+    })
+
+    readyButton.disabled = false;
 }
 
 function connect()
@@ -112,32 +144,10 @@ function connect()
     createPeerConnection(isInitiator, configuration);
 }
 
-function startVideo()
-//  TODO: Add function description.
-{
-    navigator.mediaDevices.getUserMedia(standardConstraints).then(gotStream).catch(handleError);
-    
-    readyButton.disabled = false;
-}
-
 function stopVideo()
 //  TODO: Add function description.
 {
     localStream.getTracks().forEach(track => { track.stop(); });
-}
-
-function populateDeviceList(devices)
-/**
-  * TODO: Add function description.
-  */
-{
-    for (let k = 0; k !== devices.length; ++k)
-    {
-        if (devices[k].kind === 'videoinput')   { supportedDevices.push(devices[k].deviceId); }
-    }
-
-    // Typ. "user-facing" is the first value in the array while "environment-facing" is the second value.
-    standardConstraints.video.deviceId = supportedDevices[0];
 }
 
 function gotStream(stream)
@@ -146,7 +156,6 @@ function gotStream(stream)
   */
 {
     localStream = stream;
-    var streamTracks = stream.getVideoTracks();
 
     var localVideo = document.createElement('video');
     localVideo.srcObject = localStream;
@@ -155,7 +164,7 @@ function gotStream(stream)
         window.setTimeout(() => (getStreamFeedback(localStream)), 500);
     });
 
-    localImageCapture = new ImageCapture(streamTracks[0]);
+    localImageCapture = new ImageCapture(localStream.getVideoTracks()[0]);
 }
 
 function requestSequenceFromRemote()
@@ -183,13 +192,13 @@ function sendImage()
     {
         // Local canvas for temporary image storage
         var canvas = document.createElement('canvas');
-        canvas.width = 640;    // imageBitmap.width;
-        canvas.height = 480;    // imageBitmap.height;
-        canvas.getContext('2d').drawImage(imageBitmap, 0, 0, 640, 480);
+        canvas.width = imageBitmap.width;
+        canvas.height = imageBitmap.height;
+        canvas.getContext('2d').drawImage(imageBitmap, 0, 0, imageBitmap.width, imageBitmap.height);
 
         // Split data channel message in chunks of this byte length.
         var CHUNK_LEN = 64000;
-        var img = canvas.getContext('2d').getImageData(0, 0, 640, 480);
+        var img = canvas.getContext('2d').getImageData(0, 0, imageBitmap.width, imageBitmap.height);
         var len = img.data.byteLength;
         var n = len / CHUNK_LEN | 0;
 
@@ -197,7 +206,7 @@ function sendImage()
     
         if (!dataChannel)
         {
-            handleError('ERROR: Connection has not been initiated. Get two peers in the same room first!');
+            handleError('ERROR: Connection has not been initiated.!');
             return;
         }
         else if (dataChannel.readyState === 'closed')
@@ -234,8 +243,8 @@ function renderIncomingPhoto(data)
 {
     // Populating the Remote Image div
     var canvas = document.createElement('canvas');
-    canvas.width = 640;
-    canvas.height = 480;
+    canvas.width = remoteSettings.width;
+    canvas.height = remoteSettings.height;
     canvas.classList.add('remoteImages');
     remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
     
@@ -294,6 +303,8 @@ function getStreamFeedback(stream)
         localCapabilities = Object.assign({[tempName]: tempValue}, localCapabilities);
     }
     console.log(`CLIENT: Current track capabilities ->`, localCapabilities);
+
+    return stream;
 }
 
 function applyConfigToRemote()

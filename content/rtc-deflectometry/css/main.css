@@ -15,16 +15,12 @@
     font-weight: 400;
 }
 
-body {
-    font-family: 'Roboto', sans-serif;
-    font-weight: 300;
-}
-
 audio {
     max-width: 100%;
 }
 
 body {
+    font-weight: 300;
     font-family: 'Roboto', sans-serif;
     margin: 0;
     padding: 2em;
@@ -45,7 +41,7 @@ button {
     padding: 0.5em 0.7em 0.6em 0.7em;
 }
 
-button#showPattern {
+button#showPattern, button#toggleVideo {
     background-color: #407bfa;
 }
 
@@ -87,12 +83,12 @@ div.buttons {
 }
 
 div.feedArray {
-    display: inline-block;
+    display: block;
     min-width: 600px;
     max-width: 100%;
     max-height: 100%;
-    margin: 5px;
-    padding: 5px;
+    margin: 25px;
+    padding: 25px;
 }
 
 div.half-size {
@@ -261,8 +257,6 @@ textarea {
 
 video {
     background: #202020;
-    height: 100%;
-    width: 600px;
     position: relative;
     margin: 10px 0px 30px 0px;
 }

@@ -88,7 +88,10 @@ function connect()
 function startVideo()
 //  TODO: Add function description.
 {
-    navigator.mediaDevices.getUserMedia({video: {width: {exact: 1280}, deviceId: supportedDevices[0]}}).then(gotStream).catch(handleError);
+    // DEBUG
+    console.log(supportedDevices);
+
+    navigator.mediaDevices.getUserMedia({video: {width: {exact: 1280}, facingMode: "environment"}}).then(gotStream).catch(handleError);
 
     readyButton.disabled = false;
 }

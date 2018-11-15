@@ -118,6 +118,14 @@ div#errorMsg p {
     color: #ff0000;
 }
 
+div#camSettings, div#camCapabilities {
+    vertical-align: top;
+    margin: 0 0 2em 0;
+    padding: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 h1 {
     border-bottom: 1px solid #c0c0c0;
     font-family: 'Roboto', sans-serif;
