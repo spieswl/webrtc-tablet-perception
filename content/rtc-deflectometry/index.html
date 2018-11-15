@@ -44,15 +44,23 @@
             <div id="buttonsLeft">
                 <button id="showPattern">Show Pattern</button>
             </div>
+            <div id="buttonsRight">
+                <button id="toggleVideo">Toggle Video</button>
+            </div>
         </div>
 
         <section>
-            <div class="feedArray" style="text-align: center;">
+            <div id="remoteVideo" class="feedArray" style="text-align: center;">
                 Remote Camera 1 (User-Facing)<br>
                 <video id="inFeed" playsinline autoplay muted></video><br>
             </div>
             <div class="feedArray">
                 <strong>Camera 1 Settings</strong>
+                <!-- <div class="settings">
+                    <p>Stream Width (Height locked by Aspect Ratio) : <output id="widthValue" style="font-weight:bold"></output></p>
+                    <input name="widthSet" type="range" min="0" max="1920" value="" disabled>
+                </div>
+                <hr> -->
                 <div class="settings">
                     <p>Exposure Control :</p>
                     <input type="radio" name="expCtrl" id="continuous" disabled>Automatic Control<br>
@@ -120,9 +128,9 @@
 
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="js/constraintControls.js" async></script>
-    <script src="js/socket.js" async></script>
-    <script src="js/webrtc.js" async></script>
+    <script src="js/constraintControls.js"></script>
+    <script src="js/socket.js"></script>
+    <script src="js/webrtc.js"></script>
     <script src="js/main.js" async></script>
 
 </body>

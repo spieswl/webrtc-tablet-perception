@@ -234,7 +234,7 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
     requestSequenceButton.disabled = false;
 }
 
-function assembleNewConfigForRemote(settings)
+function assembleNewConfigForRemote()
 /**
   * TODO: Add function description.
   */
@@ -242,11 +242,11 @@ function assembleNewConfigForRemote(settings)
     let newConstraints = { width: { exact: "" }, advanced: [{}] };
 
     /* ---------------------------- VIDEO WIDTH ----------------------------- */
-    if (widthSlider.disabled === false)
+    /* if (widthSlider.disabled === false)
     {
         newConstraints.width.exact = widthSlider.value;
-    }
-
+    } */
+    
     // Conditionals to check the status of the radio buttons before plugging them into the constraints applicator.
     /* ------------ EXPOSURE CONTROL, COMPENSATION, TIME SETTINGS ----------- */
     if (expSelector[0].checked)

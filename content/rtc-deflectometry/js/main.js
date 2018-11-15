@@ -9,6 +9,7 @@
 // Standard constants and variables
 var sequenceInterval;
 var sequenceCounter = 0;
+var previewVideoHidden = false;
 
 // Device-specific variables
 var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
@@ -32,6 +33,7 @@ const requestSequenceButton = document.querySelector('button#requestSequence');
 const requestConfigButton = document.querySelector('button#requestConfig');
 const applyConfigButton = document.querySelector('button#applyConfig');
 const showPatternButton = document.querySelector('button#showPattern');
+const toggleVideoButton = document.querySelector('button#toggleVideo');
 
 connectButton.onclick = connect;
 readyButton.onclick = emitReady;
@@ -43,8 +45,10 @@ showPatternButton.onclick = function()
     enterFullscreenState();
     initPattern();
 }
+toggleVideoButton.onclick = toggleVideoState;
 
 // WebRTC features & elements
+var remoteVideoDiv = document.querySelector('div#remoteVideo');
 var remoteVideoCanvas = document.querySelector('video#inFeed');
 var remoteImgs = document.querySelector('div#remoteImages');
 
@@ -112,6 +116,8 @@ function startVideo()
 //  TODO: Add function description.
 {
     navigator.mediaDevices.getUserMedia(standardConstraints).then(gotStream).catch(handleError);
+    
+    readyButton.disabled = false;
 }
 
 function stopVideo()
@@ -325,10 +331,19 @@ function applyNewConstraintsFromRemote(constraints)
 }
 
 function emitReady()
+//  TODO: Add function description.
 {
     socket.emit('ready');
 }
 
+function toggleVideoState()
+//  TODO: Add function description.
+{
+    previewVideoHidden = !previewVideoHidden;
+
+    if (previewVideoHidden) { remoteVideoDiv.style.display = "none"; }
+    else                    { remoteVideoDiv.style.display = "block"; }
+}
 
 function enterFullscreenState()
 /**

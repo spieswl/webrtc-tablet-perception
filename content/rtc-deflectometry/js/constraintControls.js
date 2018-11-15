@@ -7,6 +7,9 @@
 'use strict';
 
 // Settings control elements
+/* const widthSlider = document.querySelector('input[name="widthSet"]');
+const widthValue = document.querySelector('output[id="widthValue"]'); */
+
 const expSelector = document.getElementsByName('expCtrl');
 const expCompSlider = document.querySelector('input[name="expCompSet"]');
 const expCompValue = document.querySelector('output[id="expCompValue"]');
@@ -35,6 +38,17 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
     // Using settings and capabilities to modify on-page controls - not all controls are supported!!!
     // You may add and remove these, as necessary. Make sure you update the constraints being passed
     // to track.applyConstraints() in order to reflect the added (or removed) controls.
+
+    /* ---------------------------- VIDEO WIDTH ----------------------------- */
+    /* if (settings.width)
+    {
+        widthSlider.value = settings.width;
+        widthValue.innerHTML = widthSlider.value;
+        
+        widthSlider.oninput = function(event) { widthValue.innerHTML = event.target.value; }
+        
+        widthSlider.disabled = false;
+    } */
 
     /* ------------------------ EXPOSURE CONTROL MODE ----------------------- */
     if ('exposureMode' in capabilities)
@@ -217,6 +231,7 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
     }
 
     applyConfigButton.disabled = false;
+    requestSequenceButton.disabled = false;
 }
 
 function assembleNewConfigForRemote()
@@ -224,7 +239,13 @@ function assembleNewConfigForRemote()
   * TODO: Add function description.
   */
 {
-    let newConstraints = { advanced: [{}] };
+    let newConstraints = { width: { exact: "" }, advanced: [{}] };
+
+    /* ---------------------------- VIDEO WIDTH ----------------------------- */
+    /* if (widthSlider.disabled === false)
+    {
+        newConstraints.width.exact = widthSlider.value;
+    } */
 
     // Conditionals to check the status of the radio buttons before plugging them into the constraints applicator.
     /* ------------ EXPOSURE CONTROL, COMPENSATION, TIME SETTINGS ----------- */
