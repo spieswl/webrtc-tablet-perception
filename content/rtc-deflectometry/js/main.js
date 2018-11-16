@@ -79,10 +79,10 @@ var resolvedConstraints =
 {
     video: 
     {
-        deviceId:   videoDevices[0],
+        deviceId:   "",
 
         height:     {exact: 720},
-        width:      {exact: 1280},
+        width:      {exact: 1280}
     }
 };
 
@@ -105,6 +105,9 @@ function initialize()
             if (devices[k].kind === 'videoinput')   { videoDevices.push(devices[k].deviceId); }
         }
         console.log(`CLIENT : Local video devices -> `, videoDevices);
+
+        // Set the resolved constraints deviceId to one of the two (or more?) enumerated video devices
+        resolvedConstraints.video.deviceId = videoDevices[0];
 
         // Initial gUM scan
         navigator.mediaDevices.getUserMedia(resolvedConstraints).then(gotStream).catch(handleError);

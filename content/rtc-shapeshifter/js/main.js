@@ -37,8 +37,8 @@ var remoteVideoDiv = document.querySelector('div#remoteVideo');
 var remoteVideoCanvas = document.querySelector('video#inFeed');
 var remoteImgs = document.querySelector('div#remoteImages');
 
-var supportedDevices = [];
 var supportedConstraints;
+var videoDevices = [];
 
 var localImageCapture;
 var localStream;
@@ -58,10 +58,10 @@ var resolvedConstraints =
 {
     video: 
     {
-        deviceId:   videoDevices[1],
+        deviceId:   "",
 
         height:     {exact: 720},
-        width:      {exact: 1280},
+        width:      {exact: 1280}
     }
 };
 
@@ -84,6 +84,9 @@ function initialize()
             if (devices[k].kind === 'videoinput')   { videoDevices.push(devices[k].deviceId); }
         }
         console.log(`CLIENT : Local video devices -> `, videoDevices);
+
+        // Set the resolved constraints deviceId to one of the two (or more?) enumerated video devices
+        resolvedConstraints.video.deviceId = videoDevices[1];
 
         // Initial gUM scan
         navigator.mediaDevices.getUserMedia(resolvedConstraints).then(gotStream).catch(handleError);
