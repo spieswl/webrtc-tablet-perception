@@ -262,6 +262,10 @@ function assembleNewConfigForRemote()
             newConstraints.advanced[0].exposureCompensation = expCompSlider.value;
         }
     }
+    else if (expSelector[2].checked)
+    {
+        ;   // This no-op is intentional, so that all radio buttons are intentionally bound to some code segment.
+    }
 
     /* ----------------------------- ISO SETTING ---------------------------- */
     if (isoSlider.disabled === false)
@@ -272,11 +276,11 @@ function assembleNewConfigForRemote()
     /* ------------------ FOCUS CONTROL, DISTANCE SETTINGS ------------------ */
     if (focusSelector[0].checked)
     {
-        /* newConstraints.advanced[0].focusMode = "continuous"; */
+        newConstraints.advanced[0].focusMode = "continuous";
     }
     else if (focusSelector[1].checked)
     {
-        /* newConstraints.advanced[0].focusMode = "single-shot"; */
+        newConstraints.advanced[0].focusMode = "single-shot";
     }
     else if (focusSelector[2].checked)
     {
@@ -286,6 +290,10 @@ function assembleNewConfigForRemote()
         {
             newConstraints.advanced[0].focusDistance = focusSlider.value;
         }
+    }
+    else if (focusSelector[3].checked)
+    {
+        ;   // This no-op is intentional, so that all radio buttons are intentionally bound to some code segment.
     }
 
     /* -------------- WHITE BALANCE, COLOR TEMPERATURE SETTINGS ------------- */
@@ -306,6 +314,10 @@ function assembleNewConfigForRemote()
     {
         newConstraints.advanced[0].whiteBalanceMode = "none";
     }
+    else if (whtBalSelector[3].checked)
+    {
+        ;   // This no-op is intentional, so that all radio buttons are intentionally bound to some code segment.
+    }
 
     /* ---------------------------- ZOOM SETTING ---------------------------- */
     if (zoomSlider.disabled === false)
@@ -321,6 +333,10 @@ function assembleNewConfigForRemote()
     else if (torchSelector[1].checked)
     {
         newConstraints.advanced[0].torch = "true";
+    }
+    else if (torchSelector[2].checked)
+    {
+        ;   // This no-op is intentional, so that all radio buttons are intentionally bound to some code segment.
     }
 
     return newConstraints;

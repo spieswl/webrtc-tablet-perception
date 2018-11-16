@@ -85,8 +85,8 @@ function onDataChannelCreated(channel)
         console.log('CLIENT: Data channel opened!');
         requestCalibButton.disabled = false;
         requestSequenceButton.disabled = false;
-        requestConfigButton.disabled = false;
         testImageButton.disabled = false;
+        requestConfigButton.disabled = false;
     };
   
     channel.onclose = function()

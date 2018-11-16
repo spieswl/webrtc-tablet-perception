@@ -84,6 +84,7 @@ function onDataChannelCreated(channel)
     {
         console.log('CLIENT: Data channel opened!');
         requestSequenceButton.disabled = false;
+        testImageButton.disabled = false;
         requestConfigButton.disabled = false;
     };
   
@@ -91,6 +92,7 @@ function onDataChannelCreated(channel)
     {
         console.log('CLIENT: Data channel closed!');
         requestSequenceButton.disabled = true;
+        testImageButton.disabled = true;
         requestConfigButton.disabled = true;
     }
 

@@ -239,14 +239,14 @@ function assembleNewConfigForRemote()
   * TODO: Add function description.
   */
 {
-    let newConstraints = { width: { exact: "" }, advanced: [{}] };
+    let newConstraints = { /* width: { exact: "" },*/ advanced: [{}] };
 
     /* ---------------------------- VIDEO WIDTH ----------------------------- */
     /* if (widthSlider.disabled === false)
     {
         newConstraints.width.exact = widthSlider.value;
     } */
-    
+
     // Conditionals to check the status of the radio buttons before plugging them into the constraints applicator.
     /* ------------ EXPOSURE CONTROL, COMPENSATION, TIME SETTINGS ----------- */
     if (expSelector[0].checked)
@@ -261,6 +261,10 @@ function assembleNewConfigForRemote()
         {
             newConstraints.advanced[0].exposureCompensation = expCompSlider.value;
         }
+    }
+    else if (expSelector[2].checked)
+    {
+        ;   // This no-op is intentional, so that all radio buttons are intentionally bound to some code segment.
     }
 
     /* ----------------------------- ISO SETTING ---------------------------- */
@@ -287,6 +291,10 @@ function assembleNewConfigForRemote()
             newConstraints.advanced[0].focusDistance = focusSlider.value;
         }
     }
+    else if (focusSelector[3].checked)
+    {
+        ;   // This no-op is intentional, so that all radio buttons are intentionally bound to some code segment.
+    }
 
     /* -------------- WHITE BALANCE, COLOR TEMPERATURE SETTINGS ------------- */
     if (whtBalSelector[0].checked)
@@ -306,6 +314,10 @@ function assembleNewConfigForRemote()
     {
         newConstraints.advanced[0].whiteBalanceMode = "none";
     }
+    else if (whtBalSelector[3].checked)
+    {
+        ;   // This no-op is intentional, so that all radio buttons are intentionally bound to some code segment.
+    }
 
     /* ---------------------------- ZOOM SETTING ---------------------------- */
     if (zoomSlider.disabled === false)
@@ -321,6 +333,10 @@ function assembleNewConfigForRemote()
     else if (torchSelector[1].checked)
     {
         newConstraints.advanced[0].torch = "true";
+    }
+    else if (torchSelector[2].checked)
+    {
+        ;   // This no-op is intentional, so that all radio buttons are intentionally bound to some code segment.
     }
 
     return newConstraints;

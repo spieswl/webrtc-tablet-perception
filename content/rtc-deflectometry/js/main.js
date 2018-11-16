@@ -90,8 +90,11 @@ var resolvedConstraints =
 ///////////////////////////// STANDARD FUNCTIONS ///////////////////////////////
 
 function initialize()
+/**
+  * TODO: Add function description.
+  */
 {
-    // Initial gUM Scan
+    // Recover constrainable properties supported by the browser
     supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
     console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
 
@@ -103,6 +106,7 @@ function initialize()
         }
         console.log(`CLIENT : Local video devices -> `, videoDevices);
 
+        // Initial gUM scan
         navigator.mediaDevices.getUserMedia(resolvedConstraints).then(gotStream).catch(handleError);
 
         readyButton.disabled = false;
@@ -191,7 +195,7 @@ function requestImageFromRemote()
   * TODO: Add function description.
   */
 {
-    socket.emit('testimage_request');
+    socket.emit('image_request');
 }
 
 function requestConfigFromRemote()

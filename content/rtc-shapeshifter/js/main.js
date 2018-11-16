@@ -19,6 +19,7 @@ var previewVideoHidden = false;
 const connectButton = document.querySelector('button#connect');
 const readyButton = document.querySelector('button#ready');
 const requestSequenceButton = document.querySelector('button#requestSequence');
+const testImageButton = document.querySelector('button#testImage');
 const requestConfigButton = document.querySelector('button#requestConfig');
 const applyConfigButton = document.querySelector('button#applyConfig');
 const toggleVideoButton = document.querySelector('button#toggleVideo');
@@ -26,6 +27,7 @@ const toggleVideoButton = document.querySelector('button#toggleVideo');
 connectButton.onclick = connect;
 readyButton.onclick = emitReady;
 requestSequenceButton.onclick = requestSequenceFromRemote;
+testImageButton.onclick = requestImageFromRemote;
 requestConfigButton.onclick = requestConfigFromRemote;
 applyConfigButton.onclick = applyConfigToRemote;
 toggleVideoButton.onclick = toggleVideoState;
@@ -51,6 +53,18 @@ var remoteCapabilities;
 var imageSendCount = 0;
 var imageRcvCount = 0;
 
+// Resolved constraints
+var resolvedConstraints = 
+{
+    video: 
+    {
+        deviceId:   videoDevices[1],
+
+        height:     {exact: 720},
+        width:      {exact: 1280},
+    }
+};
+
 
 ///////////////////////////// STANDARD FUNCTIONS ///////////////////////////////
 
@@ -61,14 +75,21 @@ function initialize()
 {
     // Recover constrainable properties supported by the browser
     supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-    console.log(`CLIENT : Locally supported constraints -> `, supportedConstraints);
+    console.log(`CLIENT : Local supported constraints -> `, supportedConstraints);
 
-    // Initial gUM scan
-    navigator.mediaDevices.getUserMedia({ audio: false, video: true }).then(function()
+    navigator.mediaDevices.enumerateDevices().then(function(devices)
     {
-        navigator.mediaDevices.enumerateDevices().then(populateDeviceList).then(startVideo).catch(handleError);
-    })
-    .catch(handleError);
+        for (let k = 0; k !== devices.length; ++k)
+        {
+            if (devices[k].kind === 'videoinput')   { videoDevices.push(devices[k].deviceId); }
+        }
+        console.log(`CLIENT : Local video devices -> `, videoDevices);
+
+        // Initial gUM scan
+        navigator.mediaDevices.getUserMedia(resolvedConstraints).then(gotStream).catch(handleError);
+
+        readyButton.disabled = false;
+    });
 
     window.addEventListener('unload', function()
     {
@@ -85,30 +106,10 @@ function connect()
     createPeerConnection(isInitiator, configuration);
 }
 
-function startVideo()
-//  TODO: Add function description.
-{
-    // DEBUG
-    console.log(supportedDevices);
-
-    navigator.mediaDevices.getUserMedia({video: {width: {exact: 1280}, facingMode: "environment"}}).then(gotStream).catch(handleError);
-
-    readyButton.disabled = false;
-}
-
 function stopVideo()
 //  TODO: Add function description.
 {
     localStream.getTracks().forEach(track => { track.stop(); });
-}
-
-function populateDeviceList(devices)
-//  TODO: Add function description.
-{
-    for (let k = 0; k !== devices.length; ++k)
-    {
-        if (devices[k].kind === 'videoinput')   { supportedDevices.push(devices[k].deviceId); }
-    }
 }
 
 function gotStream(stream)
@@ -117,7 +118,6 @@ function gotStream(stream)
   */
 {
     localStream = stream;
-    var streamTracks = stream.getVideoTracks();
 
     var localVideo = document.createElement('video');
     localVideo.srcObject = localStream;
@@ -126,7 +126,7 @@ function gotStream(stream)
         window.setTimeout(() => (getStreamFeedback(localStream)), 500);
     });
 
-    localImageCapture = new ImageCapture(streamTracks[0]);
+    localImageCapture = new ImageCapture(localStream.getVideoTracks()[0]);
 }
 
 function requestSequenceFromRemote()
@@ -135,6 +135,14 @@ function requestSequenceFromRemote()
   */
 {
     socket.emit('sequence_request');
+}
+
+function requestImageFromRemote()
+/**
+  * TODO: Add function description.
+  */
+{
+    socket.emit('image_request');
 }
 
 function requestConfigFromRemote()
@@ -265,6 +273,8 @@ function getStreamFeedback(stream)
         localCapabilities = Object.assign({[tempName]: tempValue}, localCapabilities);
     }
     console.log(`CLIENT: Current track capabilities ->`, localCapabilities);
+
+    return stream;
 }
 
 function applyConfigToRemote()
@@ -301,12 +311,6 @@ function applyNewConstraintsFromRemote(constraints)
     });
 }
 
-function captureSequence()
-//  TODO: Add function description.
-{
-    sendImage();
-}
-
 function emitReady()
 //  TODO: Add function description.
 {
@@ -320,6 +324,14 @@ function toggleVideoState()
 
     if (previewVideoHidden) { remoteVideoDiv.style.display = "none"; }
     else                    { remoteVideoDiv.style.display = "block"; }
+}
+
+//////////////////////////// SHAPESHIFTER FUNCTIONS ////////////////////////////
+
+function captureSequence()
+//  TODO: Add function description.
+{
+    sendImage();
 }
 
 /////////////////////////////// UTILITY FUNCTIONS //////////////////////////////

@@ -30,14 +30,14 @@ socket.on('message', function(message)
 
 socket.on('image_request', function()
 {
-    console.log('CLIENT: Received request to send latest image. Sending now...');
+    console.log('CLIENT: Received request to send a test image. Sending one image now...');
     sendImage();
 });
 
 socket.on('sequence_request', function()
 {
     console.log('CLIENT: Received request to start capture sequence. Starting capture sequence now...');
-    sequenceInterval = setInterval(captureSequence, 6000);
+    sequenceInterval = setInterval(captureSequence, 8000);
 });
 
 socket.on('settings_request', function()
@@ -83,6 +83,7 @@ socket.on('disconnect', function(reason)
     console.log(`CLIENT: Disconnected -> ${reason}.`);
     connectButton.disabled = false;
     requestSequenceButton.disabled = true;
+    testImageButton.disabled = true;
     requestConfigButton.disabled = true;
     applyConfigButton.disabled = true;
 });

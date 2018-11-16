@@ -71,12 +71,6 @@ io.on('connection', function(socket)
         socket.broadcast.emit('sequence_request');
     });
 
-    socket.on('testimage_request', function()
-    {
-        log('Client ID ' + socket.id + ' requested a test image.');
-        socket.broadcast.emit('testimage_request');
-    });
-
     socket.on('settings_request', function()
     {
         log('Client ID ' + socket.id + ' requested current settings for the remote measurement device.');

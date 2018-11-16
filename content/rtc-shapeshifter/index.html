@@ -36,12 +36,13 @@
                 <button id="requestSequence" disabled>Start Sequence</button>
             </div>
             <div id="buttonsRight">
+                <button id="testImage" disabled>Request Image</button>
                 <button id="requestConfig" disabled>Request Config</button>
                 <button id="applyConfig" disabled>Apply Config</button>
             </div>
         </div>
         <div class="buttons">
-            <div id="buttonsRight">
+            <div id="buttonsLeft">
                 <button id="toggleVideo">Toggle Video</button>
             </div>
         </div>
@@ -60,8 +61,9 @@
                 <hr> -->
                 <div class="settings">
                     <p>Exposure Control :</p>
-                    <input type="radio" name="expCtrl" id="continuous" disabled>Automatic Control<br>
-                    <input type="radio" name="expCtrl" id="manual" disabled>Manual Control
+                    <input name="expCtrl" type="radio" id="continuous" disabled>Automatic Control<br>
+                    <input name="expCtrl" type="radio" id="manual" disabled>Manual Control<br>
+                    <input name="expCtrl" type="radio" id="lastsetting" disabled>Keep Last Setting
                 </div>
 
                 <div class="settings">
@@ -83,7 +85,8 @@
                     <p>Focus Control :</p>
                     <input name="focusCtrl" type="radio" id="continuous" disabled>Automatic Adjustment<br>
                     <input name="focusCtrl" type="radio" id="single-shot" disabled>Single-Shot Adjustment<br>
-                    <input name="focusCtrl" type="radio" id="manual" disabled>Manual Adjustment
+                    <input name="focusCtrl" type="radio" id="manual" disabled>Manual Adjustment<br>
+                    <input name="focusCtrl" type="radio" id="lastsetting" disabled>Keep Last Setting
                 </div>
 
                 <div class="settings">
@@ -95,7 +98,8 @@
                     <p>White Balance Control :</p>
                     <input name="whtBalCtrl" type="radio" id="continuous" disabled>Automatic Adjustment<br>
                     <input name="whtBalCtrl" type="radio" id="manual" disabled>Manual Adjustment<br>
-                    <input name="whtBalCtrl" type="radio" id="none" disabled>No Adjustment
+                    <input name="whtBalCtrl" type="radio" id="none" disabled>No Adjustment<br>
+                    <input name="whtBalCtrl" type="radio" id="lastsetting" disabled>Keep Last Setting
                 </div>
 
                 <div class="settings">
@@ -112,6 +116,7 @@
                     <p>Torch :</p>
                     <input name="torchCtrl" type="radio" id="off" disabled>Torch OFF<br>
                     <input name="torchCtrl" type="radio" id="on" disabled>Torch ON<br>
+                    <input name="torchCtrl" type="radio" id="lastsetting" disabled>Keep Last Setting
                 </div>
             </div>
         </section>
@@ -124,9 +129,10 @@
 
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="js/constraintControls.js"></script>
-    <script src="js/socket.js"></script>
-    <script src="js/webrtc.js"></script>
+    <script src="js/constraintControls.js" async></script>
+    <script src="js/socket.js"> async</script>
+    <script src="js/webrtc.js" async></script>
     <script src="js/main.js" async></script>
+
 </body>
 </html>
