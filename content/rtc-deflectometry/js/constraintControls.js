@@ -239,7 +239,7 @@ function assembleNewConfigForRemote()
   * TODO: Add function description.
   */
 {
-    let newConstraints = { width: { exact: "" }, advanced: [{}] };
+    let newConstraints = { /* width: { exact: "" },*/ advanced: [{}] };
 
     /* ---------------------------- VIDEO WIDTH ----------------------------- */
     /* if (widthSlider.disabled === false)
@@ -272,11 +272,11 @@ function assembleNewConfigForRemote()
     /* ------------------ FOCUS CONTROL, DISTANCE SETTINGS ------------------ */
     if (focusSelector[0].checked)
     {
-        newConstraints.advanced[0].focusMode = "continuous";
+        /* newConstraints.advanced[0].focusMode = "continuous"; */
     }
     else if (focusSelector[1].checked)
     {
-        newConstraints.advanced[0].focusMode = "single-shot";
+        /* newConstraints.advanced[0].focusMode = "single-shot"; */
     }
     else if (focusSelector[2].checked)
     {

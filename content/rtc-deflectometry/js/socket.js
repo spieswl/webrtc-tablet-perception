@@ -34,10 +34,22 @@ socket.on('image_request', function()
     sendImage();
 });
 
+socket.on('calib_request', function()
+{
+    console.log('CLIENT: Received request to start calibration sequence. Starting calibration sequence now...');
+    calibInterval = setInterval(cycleCalibration, 10000);
+});
+
 socket.on('sequence_request', function()
 {
     console.log('CLIENT: Received request to start capture sequence. Starting capture sequence now...');
-    sequenceInterval = setInterval(cyclePattern, 6000);
+    sequenceInterval = setInterval(cyclePattern, 10000);
+});
+
+socket.on('testimage_request', function()
+{
+    console.log('CLIENT: Received request to send a test image. Sending one image now...');
+    sendImage();
 });
 
 socket.on('settings_request', function()
@@ -77,6 +89,7 @@ socket.on('sequence_data', function(sequenceParam1, sequenceParam2, sequencePara
 {
     if      (sequenceParam1 === 0)  { remoteDirection = "V"; }
     else if (sequenceParam1 === 1)  { remoteDirection = "H"; }
+    else if (sequenceParam1 === 2)  { remoteDirection = "Cal"; }
     else                            { remoteDirection = ""; }
 
     remoteFrequency = sequenceParam2;
@@ -87,6 +100,7 @@ socket.on('disconnect', function(reason)
 {
     console.log(`CLIENT: Disconnected -> ${reason}.`);
     connectButton.disabled = false;
+    requestCalibButton.disabled = true;
     requestSequenceButton.disabled = true;
     requestConfigButton.disabled = true;
     applyConfigButton.disabled = true;

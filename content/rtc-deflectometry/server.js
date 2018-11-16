@@ -59,10 +59,22 @@ io.on('connection', function(socket)
         socket.broadcast.emit('image_request');
     });
 
+    socket.on('calib_request', function()
+    {
+        log('Client ID ' + socket.id + ' requested a calibration sequence.');
+        socket.broadcast.emit('calib_request');
+    });
+
     socket.on('sequence_request', function()
     {
         log('Client ID ' + socket.id + ' requested a capture sequence.');
         socket.broadcast.emit('sequence_request');
+    });
+
+    socket.on('testimage_request', function()
+    {
+        log('Client ID ' + socket.id + ' requested a test image.');
+        socket.broadcast.emit('testimage_request');
     });
 
     socket.on('settings_request', function()

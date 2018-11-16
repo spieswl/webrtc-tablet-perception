@@ -83,15 +83,19 @@ function onDataChannelCreated(channel)
     channel.onopen = function()
     {
         console.log('CLIENT: Data channel opened!');
+        requestCalibButton.disabled = false;
         requestSequenceButton.disabled = false;
         requestConfigButton.disabled = false;
+        testImageButton.disabled = false;
     };
   
     channel.onclose = function()
     {
         console.log('CLIENT: Data channel closed!');
+        requestCalibButton.disabled = true;
         requestSequenceButton.disabled = true;
         requestConfigButton.disabled = true;
+        testImageButton.disabled = true;
     }
 
     channel.onmessage = (adapter.browserDetails.browser === 'firefox') ? receiveDataFirefoxFactory() : receiveDataChromeFactory();

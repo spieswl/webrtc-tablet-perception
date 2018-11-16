@@ -26,26 +26,26 @@
     <div id="container">
         <h1><span>Deflectometry</span></h1>
         <p>
-            Specifications: Front camera (if possible), locked to 1280x720. Sinusoidal patterns consist of 1, 2, 4, 6, 8, and 10 cycles / period.
+            Specifications: Front camera (if possible), locked to 1280x720. Sinusoidal patterns consist of 1, 2, 2.5, 3, 3.5, and 5 cycles / period.
         </p>
 
         <div class="buttons">
             <div id="buttonsLeft">
                 <button id="connect" disabled>Connect</button>
                 <button id="ready" disabled>Ready</button>
+                <button id="requestCalib" disabled>Start Calibration</button>
                 <button id="requestSequence" disabled>Start Sequence</button>
             </div>
             <div id="buttonsRight">
+                <button id="testImage" disabled>Request Image</button>
                 <button id="requestConfig" disabled>Request Config</button>
                 <button id="applyConfig" disabled>Apply Config</button>
             </div>
         </div>
         <div class="buttons">
             <div id="buttonsLeft">
-                <button id="showPattern">Show Pattern</button>
-            </div>
-            <div id="buttonsRight">
                 <button id="toggleVideo">Toggle Video</button>
+                <button id="showPattern">Show Pattern</button>
             </div>
         </div>
 
@@ -128,9 +128,9 @@
 
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="js/constraintControls.js"></script>
-    <script src="js/socket.js"></script>
-    <script src="js/webrtc.js"></script>
+    <script src="js/constraintControls.js" async></script>
+    <script src="js/socket.js"> async</script>
+    <script src="js/webrtc.js" async></script>
     <script src="js/main.js" async></script>
 
 </body>

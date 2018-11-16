@@ -16,8 +16,9 @@ var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
 var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio);
 
 // Deflectometry-specific variables and elements
-var requestedCamDirection = "user";
-var frequencyArray = [ 1, 2, 4, 6, 8, 10 ];
+var calibInterval;
+var calibPixValue = 0;
+var frequencyArray = [ 1, 2, 2.5, 3, 3.5, 5 ];
 var targetDirection = 0;
 var targetFrequency = 10;
 var targetPhaseShift = 0;
@@ -30,7 +31,9 @@ var overlay;
 // Button elements
 const connectButton = document.querySelector('button#connect');
 const readyButton = document.querySelector('button#ready');
+const requestCalibButton = document.querySelector('button#requestCalib');
 const requestSequenceButton = document.querySelector('button#requestSequence');
+const testImageButton = document.querySelector('button#testImage');
 const requestConfigButton = document.querySelector('button#requestConfig');
 const applyConfigButton = document.querySelector('button#applyConfig');
 const showPatternButton = document.querySelector('button#showPattern');
@@ -38,7 +41,9 @@ const toggleVideoButton = document.querySelector('button#toggleVideo');
 
 connectButton.onclick = connect;
 readyButton.onclick = emitReady;
+requestCalibButton.onclick = requestCalibrationFromRemote;
 requestSequenceButton.onclick = requestSequenceFromRemote;
+testImageButton.onclick = requestImageFromRemote;
 requestConfigButton.onclick = requestConfigFromRemote;
 applyConfigButton.onclick = applyConfigToRemote;
 showPatternButton.onclick = function()
@@ -54,7 +59,6 @@ var remoteVideoCanvas = document.querySelector('video#inFeed');
 var remoteImgs = document.querySelector('div#remoteImages');
 
 var supportedConstraints;
-var supportedDevices;
 var videoDevices = [];
 
 var localImageCapture;
@@ -75,12 +79,10 @@ var resolvedConstraints =
 {
     video: 
     {
-        deviceId:   "",
+        deviceId:   videoDevices[0],
 
-        width:      { exact: "" },
-        height:     { exact: "" },
-
-        facingMode: requestedCamDirection
+        height:     {exact: 720},
+        width:      {exact: 1280},
     }
 };
 
@@ -95,18 +97,15 @@ function initialize()
 
     navigator.mediaDevices.enumerateDevices().then(function(devices)
     {
-        supportedDevices = devices;
-
-        console.log(`CLIENT : Local devices -> `, supportedDevices);
-
-        for (let k = 0; k !== supportedDevices.length; ++k)
+        for (let k = 0; k !== devices.length; ++k)
         {
-            if (supportedDevices[k].kind === 'videoinput')   { videoDevices.push(supportedDevices[k].deviceId); }
+            if (devices[k].kind === 'videoinput')   { videoDevices.push(devices[k].deviceId); }
         }
-
-        recoverMaxVideo(videoDevices[0]);
+        console.log(`CLIENT : Local video devices -> `, videoDevices);
 
         navigator.mediaDevices.getUserMedia(resolvedConstraints).then(gotStream).catch(handleError);
+
+        readyButton.disabled = false;
     });
 
     window.addEventListener('unload', function()
@@ -116,7 +115,7 @@ function initialize()
     });
 }
 
-function recoverMaxVideo(device)
+/* function recoverMaxVideoResolution(device)
 {
     var settings;
     var capabilities;
@@ -127,14 +126,18 @@ function recoverMaxVideo(device)
         capabilities = stream.getVideoTracks()[0].getCapabilities();
 
         resolvedConstraints.video.deviceId = settings.deviceId;
-        resolvedConstraints.video.width.exact = capabilities.width.max;
-        resolvedConstraints.video.height.exact = capabilities.height.max;
 
-        console.log("CLIENT: Resolved constraints after selection ->", resolvedConstraints);
+        if (capabilities.height.max > 720)  { resolvedConstraints.video.height.exact = 720; }
+        else                                { resolvedConstraints.video.height.exact = capabilities.height.max; }
+
+        if (capabilities.width.max > 1280)  { resolvedConstraints.video.width.exact = 1280; }
+        else                                { resolvedConstraints.video.width.exact = capabilities.width.max; }
+
+        console.log('CLIENT: Resolved constraints after device selection ->', resolvedConstraints);
+
+        stream.getTracks().forEach(track => { track.stop(); });
     })
-
-    readyButton.disabled = false;
-}
+} */
 
 function connect()
 //  TODO: Add function description.
@@ -167,12 +170,28 @@ function gotStream(stream)
     localImageCapture = new ImageCapture(localStream.getVideoTracks()[0]);
 }
 
+function requestCalibrationFromRemote()
+/**
+  * TODO: Add function description.
+  */
+{
+    socket.emit('calib_request');
+}
+
 function requestSequenceFromRemote()
 /**
   * TODO: Add function description.
   */
 {
     socket.emit('sequence_request');
+}
+
+function requestImageFromRemote()
+/**
+  * TODO: Add function description.
+  */
+{
+    socket.emit('testimage_request');
 }
 
 function requestConfigFromRemote()
@@ -249,7 +268,7 @@ function renderIncomingPhoto(data)
     remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
     
     var context = canvas.getContext('2d');
-    var img = context.createImageData(640, 480);
+    var img = context.createImageData(remoteSettings.width, remoteSettings.height);
     img.data.set(data);
     context.putImageData(img, 0, 0);
 
@@ -404,6 +423,7 @@ function initPattern()
         exitFullScreenState();
 
         clearInterval(sequenceInterval);
+        clearInterval(calibInterval);
 
         targetDirection = 0;
         targetPhaseShift = 0;
@@ -487,7 +507,7 @@ function generateVerticalPattern(context, width, height, ratio, frequency, phase
 
     for (var i = 0; i < (width * 4); i += 4)
     {
-        value = ((127.5 * Math.sin((2 * Math.PI * frequency * i * ratio / (width * 4)) + phaseShift)) + 127.5);     // Same formula for both Vertical patterns and Horizontal patterns
+        value = ((127.5 * Math.sin((2 * Math.PI * frequency * i * ratio / (width * 4)) + phaseShift)) + 127.5);
         
         for (var k = 0; k < height; k += 1)
         {
@@ -511,7 +531,7 @@ function generateHorizontalPattern(context, width, height, ratio, frequency, pha
 
     for (var k = 0; k < height; k += 1)
     {
-        value = ((127.5 * Math.sin((2 * Math.PI * frequency * k * ratio / (width * 4)) + phaseShift)) + 127.5);      // Same formula for both Vertical patterns and Horizontal patterns
+        value = ((127.5 * Math.sin((2 * Math.PI * frequency * k * ratio / width) + phaseShift)) + 127.5);
 
         for (var i = 0; i < (width * 4); i += 4)
         {
@@ -557,6 +577,63 @@ function generateWhitePattern(context, width, height)
         patternData.data[i+2] = 255;
         patternData.data[i+3] = 255;
     }
+
+    return patternData;
+}
+
+function showCalibPattern()
+/**
+  * TODO: Add function description.
+  */
+{
+    var patCtx = pattern.getContext('2d');
+    var patData = generateCalibPattern(patCtx, effScreenWidth, effScreenHeight);
+    patCtx.putImageData(patData, 0, 0);
+}
+
+function cycleCalibration()
+/**
+  * TODO: Add function description.
+  */
+{
+    showCalibPattern();
+
+    setTimeout(function()
+    {
+        socket.emit('sequence_data', 2, 0, imageSendCount);
+
+        sendImage();
+        imageSendCount++;
+
+        if (imageSendCount === 16)                              // End of capture sequence for a particular frequency
+        {
+            imageSendCount = 0;
+
+            clearInterval(calibInterval);
+            setTimeout(function() { showPattern(2, 0, 0); }, 500);
+        }
+    }, 1000);
+}
+
+function generateCalibPattern(context, width, height)
+/**
+  * TODO: Add function description.
+  */
+{
+    var patternData = context.createImageData(width, height);
+
+    for (var i = 0; i < (width * height * 4); i += 4)
+    {
+        patternData.data[i+0] = calibPixValue;
+        patternData.data[i+1] = calibPixValue;
+        patternData.data[i+2] = calibPixValue;
+        patternData.data[i+3] = 255;
+    }
+
+    if (calibPixValue === 0)    { calibPixValue += 15; }
+    else                        { calibPixValue += 16; }
+
+    if (calibPixValue > 255)    { calibPixValue = 0; }
 
     return patternData;
 }
