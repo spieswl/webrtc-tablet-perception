@@ -267,6 +267,41 @@ function renderIncomingPhoto(data)
   * TODO: Add function description.
   */
 {
+    // DEBUG
+    var pxLength = data.length / 4;
+    var hiR = 0;
+    var locR = 0;
+    var hiG = 0;
+    var locG = 0;
+    var hiB = 0;
+    var locB = 0;
+
+    for (var k = 0; k < pxLength; ++k)
+    {
+        if (data[(4*k)] > hiR)
+        { 
+            hiR = data[(4*k)];
+            locR = k;
+        }
+
+        if (data[(4*k)+1] > hiG)
+        {
+            hiG = data[(4*k)+1];
+            locG = k;
+        }
+
+        if (data[(4*k)+2] > hiB)
+        {
+            hiB = data[(4*k)+2];
+            locB = k;
+        }
+    }
+
+    console.log(`Highest R = ${hiR} @ pixel ${locR}.`);
+    console.log(`Highest G = ${hiG} @ pixel ${locG}.`);
+    console.log(`Highest B = ${hiB} @ pixel ${locB}.`);
+    // END DEBUG
+
     // Populating the Remote Image div
     var canvas = document.createElement('canvas');
     canvas.width = remoteSettings.width;

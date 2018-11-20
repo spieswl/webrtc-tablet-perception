@@ -230,6 +230,7 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
         console.log('CLIENT: Torch control is not supported by remote client.');
     }
 
+    testImageButton.disabled = false;
     applyConfigButton.disabled = false;
     requestSequenceButton.disabled = false;
 }
