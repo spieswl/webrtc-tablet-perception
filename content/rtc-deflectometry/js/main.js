@@ -37,6 +37,7 @@ const testImageButton = document.querySelector('button#testImage');
 const requestConfigButton = document.querySelector('button#requestConfig');
 const applyConfigButton = document.querySelector('button#applyConfig');
 const showPatternButton = document.querySelector('button#showPattern');
+const showWhiteButton = document.querySelector('button#showWhiteImage');
 const toggleVideoButton = document.querySelector('button#toggleVideo');
 
 connectButton.onclick = connect;
@@ -49,7 +50,12 @@ applyConfigButton.onclick = applyConfigToRemote;
 showPatternButton.onclick = function()
 {
     enterFullscreenState();
-    initPattern();
+    initPattern(0);
+}
+showWhiteButton.onclick = function()
+{
+    enterFullscreenState();
+    initPattern(2);
 }
 toggleVideoButton.onclick = toggleVideoState;
 
@@ -440,7 +446,7 @@ function exitFullScreenState()
 
 //////////////////////////// DEFLECTOMETRY FUNCTIONS ///////////////////////////
 
-function initPattern()
+function initPattern(patSwitch)
 /**
   * TODO: Add function description.
   */
@@ -474,13 +480,30 @@ function initPattern()
         imageSendCount = 0;
     });
 
-    // Start out with a dummy pattern for placement and alignment purposes, locked to 10 cycles
-    var patCtx = pattern.getContext('2d');
-    var patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 10, targetPhaseShift);
+    var patCtx;
+    var patData;
+
+    if (patSwitch === 1)
+    {
+        // Display a black pattern
+        patCtx = pattern.getContext('2d');
+        patData = generateBlackPattern(patCtx, effScreenWidth, effScreenHeight);
+    }
+    else if (patSwitch === 2)
+    {
+        // Display a white pattern
+        patCtx = pattern.getContext('2d');
+        patData = generateWhitePattern(patCtx, effScreenWidth, effScreenHeight);
+    }
+    else
+    {
+        // Normal operation is to start out with a dummy pattern for placement and alignment purposes, locked to 10 cycles
+        patCtx = pattern.getContext('2d');
+        patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 10, targetPhaseShift);
+    }
+
     patCtx.putImageData(patData, 0, 0);
-
     overlay.appendChild(pattern);
-
     document.body.appendChild(overlay);
 }
 
