@@ -220,17 +220,24 @@ function sendImage()
   * TODO: Add function description.
   */
 {
-    localImageCapture.grabFrame().then(imageBitmap =>
+    localImageCapture.takePhoto().then(imgBlob =>
     {
+        // Generate an image from the blob
+        var tempImage = document.createElement('img');
+        remoteImgs.append(tempImage);
+        tempImage.src = URL.createObjectURL(imgBlob);
+
+        console.log(tempImage);
+
         // Local canvas for temporary image storage
         var canvas = document.createElement('canvas');
-        canvas.width = imageBitmap.width;
-        canvas.height = imageBitmap.height;
-        canvas.getContext('2d').drawImage(imageBitmap, 0, 0, imageBitmap.width, imageBitmap.height);
+        canvas.width = tempImage.width;
+        canvas.height = tempImage.height;
+        canvas.getContext('2d').drawImage(tempImage, 0, 0, tempImage.width, tempImage.height);
 
         // Split data channel message in chunks of this byte length.
         var CHUNK_LEN = 64000;
-        var img = canvas.getContext('2d').getImageData(0, 0, imageBitmap.width, imageBitmap.height);
+        var img = canvas.getContext('2d').getImageData(0, 0, tempImage.width, tempImage.height);
         var len = img.data.byteLength;
         var n = len / CHUNK_LEN | 0;
 
@@ -265,7 +272,7 @@ function sendImage()
             dataChannel.send(img.data.subarray(n * CHUNK_LEN));
         }
     })
-    .catch(err => console.error('CLIENT: grabFrame() error ->', err));
+    .catch(err => console.error('CLIENT: takePhoto() error ->', err));
 }
 
 function renderIncomingPhoto(data)
