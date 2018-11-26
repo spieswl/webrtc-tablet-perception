@@ -62,6 +62,7 @@ toggleVideoButton.onclick = toggleVideoState;
 // WebRTC features & elements
 var remoteVideoDiv = document.querySelector('div#remoteVideo');
 var remoteVideoCanvas = document.querySelector('video#inFeed');
+var localImgs = document.querySelector('div#localImages');
 var remoteImgs = document.querySelector('div#remoteImages');
 
 var supportedConstraints;
@@ -224,12 +225,16 @@ function sendImage()
     {
         // Generate an image from the blob
         var tempImage = document.createElement('img');
-        remoteImgs.append(tempImage);
+        localImgs.append(tempImage);
         tempImage.src = URL.createObjectURL(imgBlob);
 
-        console.log(tempImage);
+        tempImage.onload = function()
+        {
+            console.log(tempImage.width);
+            console.log(tempImage.height);
+        }
 
-        // Local canvas for temporary image storage
+        /* // Local canvas for temporary image storage
         var canvas = document.createElement('canvas');
         canvas.width = tempImage.width;
         canvas.height = tempImage.height;
@@ -270,7 +275,7 @@ function sendImage()
         {
             console.log('CLIENT: Last ' + len % CHUNK_LEN + ' byte(s).');
             dataChannel.send(img.data.subarray(n * CHUNK_LEN));
-        }
+        } */
     })
     .catch(err => console.error('CLIENT: takePhoto() error ->', err));
 }
