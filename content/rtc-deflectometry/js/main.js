@@ -225,57 +225,57 @@ function sendImage()
     {
         // Generate an image from the blob
         var tempImage = document.createElement('img');
-        localImgs.append(tempImage);
         tempImage.src = URL.createObjectURL(imgBlob);
 
         tempImage.onload = function()
         {
-            console.log(tempImage.width);
-            console.log(tempImage.height);
-        }
+            // Local canvas for temporary storage
+            var canvas = document.createElement('canvas');
+            canvas.width = tempImage.naturalWidth;
+            canvas.height = tempImage.naturalHeight;
+            canvas.getContext('2d').drawImage(tempImage, 0, 0, tempImage.naturalWidth, tempImage.naturalHeight);
 
-        /* // Local canvas for temporary image storage
-        var canvas = document.createElement('canvas');
-        canvas.width = tempImage.width;
-        canvas.height = tempImage.height;
-        canvas.getContext('2d').drawImage(tempImage, 0, 0, tempImage.width, tempImage.height);
+            // Split data channel message in chunks of this byte length.
+            var CHUNK_LEN = 64000;
+            var img = canvas.getContext('2d').getImageData(0, 0, tempImage.naturalWidth, tempImage.naturalHeight);
+            var len = img.data.byteLength;
+            var n = len / CHUNK_LEN | 0;
 
-        // Split data channel message in chunks of this byte length.
-        var CHUNK_LEN = 64000;
-        var img = canvas.getContext('2d').getImageData(0, 0, tempImage.width, tempImage.height);
-        var len = img.data.byteLength;
-        var n = len / CHUNK_LEN | 0;
+            console.log('CLIENT: Sending a total of ' + len + ' byte(s) for image # ' + imageSendCount);
+    
+            if (!dataChannel)
+            {
+                handleError('ERROR: Connection has not been initiated.!');
+                return;
+            }
+            else if (dataChannel.readyState === 'closed')
+            {
+                handleError('ERROR: Connection was lost. Peer closed the connection.');
+                return;
+            }
+    
+            dataChannel.send(len);
+    
+            // Split the photo and send in chunks of about 64KB
+            for (var i = 0; i < n; i++)
+            {
+                var start = i * CHUNK_LEN,
+                end = (i + 1) * CHUNK_LEN;
+                console.log('CLIENT: ' + start + ' - ' + (end - 1));
+                dataChannel.send(img.data.subarray(start, end));
+            }
+    
+            // Send the remainder, if any
+            if (len % CHUNK_LEN)
+            {
+                console.log('CLIENT: Last ' + len % CHUNK_LEN + ' byte(s).');
+                dataChannel.send(img.data.subarray(n * CHUNK_LEN));
+            }
 
-        console.log('CLIENT: Sending a total of ' + len + ' byte(s) for image # ' + imageSendCount);
-    
-        if (!dataChannel)
-        {
-            handleError('ERROR: Connection has not been initiated.!');
-            return;
+            // DataChannel is crapping out when trying to send 18 MB images, look at
+            // https://richard.to/programming/sending-images-with-webrtc-data-channels.html
+            // for a potential delay implementation idea.
         }
-        else if (dataChannel.readyState === 'closed')
-        {
-            handleError('ERROR: Connection was lost. Peer closed the connection.');
-            return;
-        }
-    
-        dataChannel.send(len);
-    
-        // Split the photo and send in chunks of about 64KB
-        for (var i = 0; i < n; i++)
-        {
-            var start = i * CHUNK_LEN,
-            end = (i + 1) * CHUNK_LEN;
-            console.log('CLIENT: ' + start + ' - ' + (end - 1));
-            dataChannel.send(img.data.subarray(start, end));
-        }
-    
-        // Send the remainder, if any
-        if (len % CHUNK_LEN)
-        {
-            console.log('CLIENT: Last ' + len % CHUNK_LEN + ' byte(s).');
-            dataChannel.send(img.data.subarray(n * CHUNK_LEN));
-        } */
     })
     .catch(err => console.error('CLIENT: takePhoto() error ->', err));
 }
