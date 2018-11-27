@@ -37,13 +37,15 @@ socket.on('image_request', function()
 socket.on('calib_request', function()
 {
     console.log('CLIENT: Received request to start calibration sequence. Starting calibration sequence now...');
+    imageSendCount = 0;
     calibInterval = setInterval(cycleCalibration, 10000);
 });
 
 socket.on('sequence_request', function()
 {
     console.log('CLIENT: Received request to start capture sequence. Starting capture sequence now...');
-    sequenceInterval = setInterval(cyclePattern, 8000);
+    imageSendCount = 0;
+    sequenceInterval = setInterval(cyclePattern, 10000);
 });
 
 socket.on('settings_request', function()
@@ -81,10 +83,12 @@ socket.on('apply_response', function(boolean)
 
 socket.on('sequence_data', function(sequenceParam1, sequenceParam2, sequenceParam3)
 {
-    if      (sequenceParam1 === 0)  { remoteDirection = "V"; }
-    else if (sequenceParam1 === 1)  { remoteDirection = "H"; }
-    else if (sequenceParam1 === 2)  { remoteDirection = "Cal"; }
-    else                            { remoteDirection = ""; }
+    if      (sequenceParam1 === 0)  { remoteType = "VF"; }
+    else if (sequenceParam1 === 1)  { remoteType = "HF"; }
+    else if (sequenceParam1 === 2)  { remoteType = "VL"; }
+    else if (sequenceParam1 === 3)  { remoteType = "HL"; }
+    else if (sequenceParam1 === 98) { remoteType = "Cal"; }
+    else                            { remoteType = ""; }
 
     remoteFrequency = sequenceParam2;
     remotePhaseShift = sequenceParam3;

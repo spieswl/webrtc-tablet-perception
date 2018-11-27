@@ -19,14 +19,16 @@ var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio)
 var calibInterval;
 var calibPixValue = 0;
 var frequencyArray = [ 1, 2, 2.5, 3, 3.5, 5 ];
-var targetDirection = 0;
+var targetType = 0;
 var targetFrequency = 10;
 var targetPhaseShift = 0;
-var remoteDirection;
+var remoteType;
 var remoteFrequency;
 var remotePhaseShift;
+var measurementLineWidth = 3;
 var pattern;
 var overlay;
+var lensHousingOffset = 100;
 
 // Button elements
 const connectButton = document.querySelector('button#connect');
@@ -127,30 +129,6 @@ function initialize()
         socket.emit('bye');
     });
 }
-
-/* function recoverMaxVideoResolution(device)
-{
-    var settings;
-    var capabilities;
-
-    navigator.mediaDevices.getUserMedia({video: {deviceId: device}}).then(function(stream)
-    {
-        settings = stream.getVideoTracks()[0].getSettings();
-        capabilities = stream.getVideoTracks()[0].getCapabilities();
-
-        resolvedConstraints.video.deviceId = settings.deviceId;
-
-        if (capabilities.height.max > 720)  { resolvedConstraints.video.height.exact = 720; }
-        else                                { resolvedConstraints.video.height.exact = capabilities.height.max; }
-
-        if (capabilities.width.max > 1280)  { resolvedConstraints.video.width.exact = 1280; }
-        else                                { resolvedConstraints.video.width.exact = capabilities.width.max; }
-
-        console.log('CLIENT: Resolved constraints after device selection ->', resolvedConstraints);
-
-        stream.getTracks().forEach(track => { track.stop(); });
-    })
-} */
 
 function connect()
 //  TODO: Add function description.
@@ -273,14 +251,42 @@ function renderIncomingPhoto(data)
   * TODO: Add function description.
   */
 {
-    // DEBUG
+    analyzeImageBrightness(data);
+
+    // Populating the Remote Image div
+    var canvas = document.createElement('canvas');
+    canvas.width = remoteSettings.width;
+    canvas.height = remoteSettings.height;
+    canvas.classList.add('remoteImages');
+    remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
+    
+    var context = canvas.getContext('2d');
+    var img = context.createImageData(remoteSettings.width, remoteSettings.height);
+    img.data.set(data);
+    context.putImageData(img, 0, 0);
+
+    // Saving the image
+    let latestImg = remoteImgs.getElementsByTagName('canvas')[0];
+    let dataURL = latestImg.toDataURL('image/png').replace("image/png", "image/octet-stream");
+
+    let newImgLink = document.createElement('a');
+    newImgLink.href = dataURL;
+    newImgLink.download = remoteType + "_f" + remoteFrequency + "_ps" + remotePhaseShift + "_img" + imageRcvCount + ".png";
+    newImgLink.click();
+
+    // Update the global image counter (refreshes on load)
+    imageRcvCount++;
+}
+
+function analyzeImageBrightness(data)
+/**
+  * TODO: Add function description.
+  */
+{
     var pxLength = data.length / 4;
-    var hiR = 0;
-    var locR = 0;
-    var hiG = 0;
-    var locG = 0;
-    var hiB = 0;
-    var locB = 0;
+    var hiR = 0, locR = 0;
+    var hiG = 0, locG = 0;
+    var hiB = 0, locB = 0;
 
     for (var k = 0; k < pxLength; ++k)
     {
@@ -303,34 +309,9 @@ function renderIncomingPhoto(data)
         }
     }
 
-    console.log(`Highest R = ${hiR} @ pixel ${locR}.`);
-    console.log(`Highest G = ${hiG} @ pixel ${locG}.`);
-    console.log(`Highest B = ${hiB} @ pixel ${locB}.`);
-    // END DEBUG
-
-    // Populating the Remote Image div
-    var canvas = document.createElement('canvas');
-    canvas.width = remoteSettings.width;
-    canvas.height = remoteSettings.height;
-    canvas.classList.add('remoteImages');
-    remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
-    
-    var context = canvas.getContext('2d');
-    var img = context.createImageData(remoteSettings.width, remoteSettings.height);
-    img.data.set(data);
-    context.putImageData(img, 0, 0);
-
-    // Saving the image
-    let latestImg = remoteImgs.getElementsByTagName('canvas')[0];
-    let dataURL = latestImg.toDataURL('image/png').replace("image/png", "image/octet-stream");
-
-    let newImgLink = document.createElement('a');
-    newImgLink.href = dataURL;
-    newImgLink.download = remoteDirection + "_f" + remoteFrequency + "_ps" + remotePhaseShift + "_img" + imageRcvCount + ".png";
-    newImgLink.click();
-
-    // Update the global image counter (refreshes on load)
-    imageRcvCount++;
+    console.log(`IMAGE ANALYSIS: Highest R = ${hiR} @ pixel ${locR}.`);
+    console.log(`IMAGE ANALYSIS: Highest G = ${hiG} @ pixel ${locG}.`);
+    console.log(`IMAGE ANALYSIS: Highest B = ${hiB} @ pixel ${locB}.`);
 }
 
 function getStreamFeedback(stream)
@@ -473,7 +454,7 @@ function initPattern(patSwitch)
         clearInterval(sequenceInterval);
         clearInterval(calibInterval);
 
-        targetDirection = 0;
+        targetType = 0;
         targetPhaseShift = 0;
         targetFrequency = 0;
         sequenceCounter = 0;
@@ -499,7 +480,7 @@ function initPattern(patSwitch)
     {
         // Normal operation is to start out with a dummy pattern for placement and alignment purposes, locked to 10 cycles
         patCtx = pattern.getContext('2d');
-        patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 10, targetPhaseShift);
+        patData = generateVerticalFringePattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 10, targetPhaseShift);
     }
 
     patCtx.putImageData(patData, 0, 0);
@@ -507,7 +488,7 @@ function initPattern(patSwitch)
     document.body.appendChild(overlay);
 }
 
-function showPattern(direction, frequency,  phaseShift)
+function showPattern(type, frequency,  phaseShift)
 /**
   * TODO: Add function description.
   */
@@ -515,9 +496,11 @@ function showPattern(direction, frequency,  phaseShift)
     var patCtx = pattern.getContext('2d');
     var patData;
     
-    if      (direction === 0)   { patData = generateVerticalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
-    else if (direction === 1)   { patData = generateHorizontalPattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
-    else                        { patData = generateBlackPattern(patCtx, effScreenWidth, effScreenHeight); }
+    if      (type === 0)    { patData = generateVerticalFringePattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
+    else if (type === 1)    { patData = generateHorizontalFringePattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
+    else if (type === 2)    { patData = generateVerticalLinePattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
+    else if (type === 3)    { patData = generateHorizontalLinePattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
+    else                    { patData = generateBlackPattern(patCtx, effScreenWidth, effScreenHeight); }
 
     patCtx.putImageData(patData, 0, 0);
 }
@@ -529,13 +512,13 @@ function cyclePattern()
 {
     targetFrequency = frequencyArray[sequenceCounter];
 
-    showPattern(targetDirection, targetFrequency, targetPhaseShift);
+    showPattern(targetType, targetFrequency, targetPhaseShift);
 
     targetPhaseShift += (Math.PI / 2);
 
     setTimeout(function()
     {
-        socket.emit('sequence_data', targetDirection, targetFrequency, imageSendCount);
+        socket.emit('sequence_data', targetType, targetFrequency, imageSendCount);
 
         sendImage();
         imageSendCount++;
@@ -546,35 +529,42 @@ function cyclePattern()
             targetPhaseShift = 0;
 
             sequenceCounter++;
-            if (sequenceCounter === frequencyArray.length)      // End of capture sequence for all frequencies in a particular direction
+            if (sequenceCounter === frequencyArray.length)      // End of capture sequence for all frequencies in a particular type group
             {
-                if (targetDirection === 1)                      // End of capture sequence for both directions
+                if (targetType === 2)                           // End of capture sequence for all types
                 {
-                    targetDirection = 0;
+                    targetType = 0;
                     clearInterval(sequenceInterval);
-                    setTimeout(function() { showPattern(2, 0, 0); }, 500);
+                    setTimeout(function() { showPattern(99, 0, 0); }, 500);
                 }
 
                 sequenceCounter = 0;
-                targetDirection++;
+                targetType++;
             }
         }
     }, 1000);
 }
 
-function generateVerticalPattern(context, width, height, ratio, frequency, phaseShift)
+function generateVerticalFringePattern(context, width, height, ratio, frequency, phaseShift)
 /**
   * TODO: Add function description.
   */
 {
-    var patternData = context.createImageData(width, height);
+    var hStart = 0;
+    var vStart = 0;
+    var patternData = generateBlackPattern(context, width, height);
     var value = 0;
 
-    for (var i = 0; i < (width * 4); i += 4)
+    if (lensHousingOffset)
+    {
+        hStart = lensHousingOffset * 4;
+    }
+
+    for (var i = hStart; i < (width * 4); i += 4)
     {
         value = ((127.5 * Math.sin((2 * Math.PI * frequency * i * ratio / (width * 4)) + phaseShift)) + 127.5);
         
-        for (var k = 0; k < height; k += 1)
+        for (var k = vStart; k < height; k += 1)
         {
             patternData.data[(4*k*width)+i+0] = value;
             patternData.data[(4*k*width)+i+1] = value;
@@ -586,19 +576,26 @@ function generateVerticalPattern(context, width, height, ratio, frequency, phase
     return patternData;
 }
 
-function generateHorizontalPattern(context, width, height, ratio, frequency, phaseShift)
+function generateHorizontalFringePattern(context, width, height, ratio, frequency, phaseShift)
 /**
   * TODO: Add function description.
   */
 {
-    var patternData = context.createImageData(width, height);
+    var hStart = 0;
+    var vStart = 0;
+    var patternData = generateBlackPattern(context, width, height);
     var value = 0;
 
-    for (var k = 0; k < height; k += 1)
+    if (lensHousingOffset)
+    {
+        hStart = lensHousingOffset * 4;
+    }
+
+    for (var k = vStart; k < height; k += 1)
     {
         value = ((127.5 * Math.sin((2 * Math.PI * frequency * k * ratio / width) + phaseShift)) + 127.5);
 
-        for (var i = 0; i < (width * 4); i += 4)
+        for (var i = hStart; i < (width * 4); i += 4)
         {
             patternData.data[(4*k*width)+i+0] = value;
             patternData.data[(4*k*width)+i+1] = value;
@@ -609,20 +606,80 @@ function generateHorizontalPattern(context, width, height, ratio, frequency, pha
 
     return patternData;
 }
+
+function generateVerticalLinePattern(context, width, height, ratio, frequency, phaseShift)
+/**
+  * TODO: Add function description.
+  */
+{
+    var hStart = 0;
+    var vStart = 0;
+    var lineSpan = width / (frequency * ratio);
+    var patternData = generateBlackPattern(context, width, height);
+
+    console.log("WIDTH :", width);
+    console.log("LINE SPAN :", lineSpan);
+
+    if (lensHousingOffset)
+    {
+        hStart = lensHousingOffset * 4;
+    }
+
+    for (var count = 0; count < frequency; ++count)
+    {
+        var linePos = Math.round((count * lineSpan) + ((phaseShift / (2 * Math.PI)) * lineSpan));
+
+        console.log("LINE POS, COUNT:", linePos, " : ", count);
+
+        var lineStart = linePos * 4;
+        var lineEnd = lineStart + (4 * measurementLineWidth);
+
+        for (var i = lineStart; i < lineEnd; i += 4)
+        {
+            for (var k = vStart; k < height; k += 1)
+            {
+                patternData.data[(4*k*width)+i+0] = 255;
+                patternData.data[(4*k*width)+i+1] = 255;
+                patternData.data[(4*k*width)+i+2] = 255;
+                patternData.data[(4*k*width)+i+3] = 255;
+            }
+        }
+    }
+
+    return patternData;
+}
+
+function generateHorizontalLinePattern(context, width, height, ratio, frequency, phaseShift)
+/**
+  * TODO: Add function description.
+  */
+{
+    // TBD
+
+    return patternData;
+}
+
 
 function generateBlackPattern(context, width, height)
 /**
   * TODO: Add function description.
   */
 {
+    var hStart = 0;
+    var vStart = 0;
     var patternData = context.createImageData(width, height);
 
-    for (var i = 0; i < (width * height * 4); i += 4)
+    // NOTE: No lens housing compensation code, always creating a totally black screen.
+
+    for (var i = hStart; i < (width * 4); i += 4)
     {
-        patternData.data[i+0] = 0;
-        patternData.data[i+1] = 0;
-        patternData.data[i+2] = 0;
-        patternData.data[i+3] = 255;
+        for (var k = vStart; k < height; k += 1)
+        {
+            patternData.data[(4*k*width)+i+0] = 0;
+            patternData.data[(4*k*width)+i+1] = 0;
+            patternData.data[(4*k*width)+i+2] = 0;
+            patternData.data[(4*k*width)+i+3] = 255;
+        }
     }
 
     return patternData;
@@ -633,14 +690,24 @@ function generateWhitePattern(context, width, height)
   * TODO: Add function description.
   */
 {
-    var patternData = context.createImageData(width, height);
+    var hStart = 0;
+    var vStart = 0;
+    var patternData = generateBlackPattern(context, width, height);
 
-    for (var i = 0; i < (width * height * 4); i += 4)
+    if (lensHousingOffset)
     {
-        patternData.data[i+0] = 255;
-        patternData.data[i+1] = 255;
-        patternData.data[i+2] = 255;
-        patternData.data[i+3] = 255;
+        hStart = lensHousingOffset * 4;
+    }
+
+    for (var i = hStart; i < (width * 4); i += 4)
+    {
+        for (var k = vStart; k < height; k += 1)
+        {
+            patternData.data[(4*k*width)+i+0] = 255;
+            patternData.data[(4*k*width)+i+1] = 255;
+            patternData.data[(4*k*width)+i+2] = 255;
+            patternData.data[(4*k*width)+i+3] = 255;
+        }
     }
 
     return patternData;
@@ -665,17 +732,18 @@ function cycleCalibration()
 
     setTimeout(function()
     {
-        socket.emit('sequence_data', 2, 0, imageSendCount);
+        socket.emit('sequence_data', 98, 0, imageSendCount);
 
         sendImage();
         imageSendCount++;
 
-        if (imageSendCount === 16)                              // End of capture sequence for a particular frequency
+        if (calibPixValue === 255)                          // End of capture sequence for the calib sequence
         {
             imageSendCount = 0;
+            calibPixValue = 0;
 
             clearInterval(calibInterval);
-            setTimeout(function() { showPattern(2, 0, 0); }, 500);
+            setTimeout(function() { showPattern(99, 0, 0); }, 500);
         }
     }, 1000);
 }
@@ -685,23 +753,35 @@ function generateCalibPattern(context, width, height)
   * TODO: Add function description.
   */
 {
-    var patternData = context.createImageData(width, height);
+    var hStart = 0;
+    var vStart = 0;
+    var patternData = generateBlackPattern(context, width, height);
 
-    for (var i = 0; i < (width * height * 4); i += 4)
+    if (lensHousingOffset)
     {
-        patternData.data[i+0] = calibPixValue;
-        patternData.data[i+1] = calibPixValue;
-        patternData.data[i+2] = calibPixValue;
-        patternData.data[i+3] = 255;
+        hStart = lensHousingOffset * 4;
+    }
+
+    for (var i = hStart; i < (width * 4); i += 4)
+    {
+        for (var k = vStart; k < height; k += 1)
+        {
+            patternData.data[(4*k*width)+i+0] = calibPixValue;
+            patternData.data[(4*k*width)+i+1] = calibPixValue;
+            patternData.data[(4*k*width)+i+2] = calibPixValue;
+            patternData.data[(4*k*width)+i+3] = 255;
+        }
     }
 
     if (calibPixValue === 0)    { calibPixValue += 15; }
     else                        { calibPixValue += 16; }
 
-    if (calibPixValue > 255)    { calibPixValue = 0; }
+    if (calibPixValue > 255)    { calibPixValue = 255; }
 
     return patternData;
 }
+
+
 
 /////////////////////////////// UTILITY FUNCTIONS //////////////////////////////
 
