@@ -234,9 +234,6 @@ function sendImage()
                 return;
             }
             
-            console.log('TempImage : ', tempImage);
-            console.log('N : ', n);
-            
             console.log('CLIENT: Sending a total of ' + len + ' byte(s) for image # ' + imageSendCount);
             dataChannel.send(len);
 
