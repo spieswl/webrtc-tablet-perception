@@ -161,7 +161,15 @@ function sendImage()
   * TODO: Add function description.
   */
 {
-    localImageCapture.takePhoto().then(imgBlob =>
+    var photoSettings = 
+    { 
+        fillLightMode:      "off",
+        imageHeight:        1440,
+        imageWidth:         2560,
+        redEyeReduction:    false 
+    };
+
+    localImageCapture.takePhoto(photoSettings).then(imgBlob =>
     {
         // Generate an image from the blob
         var tempImage = document.createElement('img');
@@ -171,9 +179,9 @@ function sendImage()
         {
             // Local canvas for temporary storage
             var canvas = document.createElement('canvas');
-            canvas.width = tempImage.naturalWidth;
-            canvas.height = tempImage.naturalHeight;
-            canvas.getContext('2d').drawImage(tempImage, 0, 0, tempImage.naturalWidth, tempImage.naturalHeight);
+            canvas.width = 2560; //tempImage.naturalWidth;
+            canvas.height = 1440; //tempImage.naturalHeight;
+            canvas.getContext('2d').drawImage(tempImage, 0, 0, canvas.width, canvas.height);
 
             // Split data channel message in chunks of this byte length.
             var bytesSent = 0;
@@ -181,7 +189,7 @@ function sendImage()
             var sendDelay = 50;
             var intervalID = 0;
 
-            var img = canvas.getContext('2d').getImageData(0, 0, tempImage.naturalWidth, tempImage.naturalHeight);
+            var img = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
             var len = img.data.byteLength;
 
             if (!dataChannel)
@@ -229,8 +237,8 @@ function renderIncomingPhoto(data)
 {
     // Populating the Remote Image div
     var canvas = document.createElement('canvas');
-    canvas.width = remoteCapabilities.width.max;
-    canvas.height = remoteCapabilities.height.max;
+    canvas.width = 2560; //remoteCapabilities.width.max;
+    canvas.height = 1440; //remoteCapabilities.height.max;
     canvas.classList.add('remoteImages');
     remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
     
