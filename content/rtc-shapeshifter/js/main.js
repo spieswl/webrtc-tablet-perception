@@ -161,52 +161,65 @@ function sendImage()
   * TODO: Add function description.
   */
 {
-    localImageCapture.grabFrame().then(imageBitmap =>
+    localImageCapture.takePhoto().then(imgBlob =>
     {
-        // Local canvas for temporary image storage
-        var canvas = document.createElement('canvas');
-        canvas.width = imageBitmap.width;
-        canvas.height = imageBitmap.height;
-        canvas.getContext('2d').drawImage(imageBitmap, 0, 0, imageBitmap.width, imageBitmap.height);
+        // Generate an image from the blob
+        var tempImage = document.createElement('img');
+        tempImage.src = URL.createObjectURL(imgBlob);
 
-        // Split data channel message in chunks of this byte length.
-        var CHUNK_LEN = 64000;
-        var img = canvas.getContext('2d').getImageData(0, 0, imageBitmap.width, imageBitmap.height);
-        var len = img.data.byteLength;
-        var n = len / CHUNK_LEN | 0;
-    
-        console.log('CLIENT: Sending a total of ' + len + ' byte(s) for image # ' + imageSendCount);
-    
-        if (!dataChannel)
+        tempImage.onload = function()
         {
-            handleError('ERROR: Connection has not been initiated.!');
-            return;
-        }
-        else if (dataChannel.readyState === 'closed')
-        {
-            handleError('ERROR: Connection was lost. Peer closed the connection.');
-            return;
-        }
-    
-        dataChannel.send(len);
-    
-        // Split the photo and send in chunks of about 64KB
-        for (var i = 0; i < n; i++)
-        {
-            var start = i * CHUNK_LEN,
-            end = (i + 1) * CHUNK_LEN;
-            console.log('CLIENT: ' + start + ' - ' + (end - 1));
-            dataChannel.send(img.data.subarray(start, end));
-        }
-    
-        // Send the remainder, if any
-        if (len % CHUNK_LEN)
-        {
-            console.log('CLIENT: Last ' + len % CHUNK_LEN + ' byte(s).');
-            dataChannel.send(img.data.subarray(n * CHUNK_LEN));
+            // Local canvas for temporary storage
+            var canvas = document.createElement('canvas');
+            canvas.width = tempImage.naturalWidth;
+            canvas.height = tempImage.naturalHeight;
+            canvas.getContext('2d').drawImage(tempImage, 0, 0, tempImage.naturalWidth, tempImage.naturalHeight);
+
+            // Split data channel message in chunks of this byte length.
+            var bytesSent = 0;
+            var chunkLength = 64000;
+            var sendDelay = 50;
+            var intervalID = 0;
+
+            var img = canvas.getContext('2d').getImageData(0, 0, tempImage.naturalWidth, tempImage.naturalHeight);
+            var len = img.data.byteLength;
+
+            if (!dataChannel)
+            {
+                handleError('ERROR: Connection has not been initiated.!');
+                return;
+            }
+            else if (dataChannel.readyState === 'closed')
+            {
+                handleError('ERROR: Connection was lost. Peer closed the connection.');
+                return;
+            }
+            
+            console.log('CLIENT: Sending a total of ' + len + ' byte(s) for image # ' + imageSendCount);
+            dataChannel.send(len);
+
+            intervalID = setInterval(function()
+            {
+                var msgStart = bytesSent;
+                var msgEnd = bytesSent + chunkLength;
+
+                if (msgEnd > len)
+                {
+                    msgEnd = len;
+                    console.log('CLIENT: Last ' + len % chunkLength + ' byte(s) in queue.');
+                    clearInterval(intervalID);
+                }
+                else 
+                {
+                    console.log('CLIENT: Sending bytes ' + msgStart + ' - ' + (msgEnd - 1));
+                }
+
+                dataChannel.send(img.data.subarray(msgStart, msgEnd));
+                bytesSent = msgEnd;
+            }, sendDelay);
         }
     })
-    .catch(err => console.error('CLIENT: grabFrame() error ->', err));
+    .catch(err => console.error('CLIENT: takePhoto() error ->', err));
 }
 
 function renderIncomingPhoto(data)
@@ -216,13 +229,13 @@ function renderIncomingPhoto(data)
 {
     // Populating the Remote Image div
     var canvas = document.createElement('canvas');
-    canvas.width = remoteSettings.width;
-    canvas.height = remoteSettings.height;
+    canvas.width = remoteCapabilities.width.max;
+    canvas.height = remoteCapabilities.height.max;
     canvas.classList.add('remoteImages');
     remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
     
     var context = canvas.getContext('2d');
-    var img = context.createImageData(remoteSettings.width, remoteSettings.height);
+    var img = context.createImageData(canvas.width, canvas.height);
     img.data.set(data);
     context.putImageData(img, 0, 0);
 

@@ -37,6 +37,7 @@ socket.on('image_request', function()
 socket.on('sequence_request', function()
 {
     console.log('CLIENT: Received request to start capture sequence. Starting capture sequence now...');
+    imageSendCount = 0;
     sequenceInterval = setInterval(captureSequence, 15000);
 });
 
