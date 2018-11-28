@@ -612,13 +612,9 @@ function generateVerticalLinePattern(context, width, height, ratio, frequency, p
   * TODO: Add function description.
   */
 {
-    var hStart = 0;
     var vStart = 0;
     var lineSpan = width / (frequency * ratio);
     var patternData = generateBlackPattern(context, width, height);
-
-    console.log("WIDTH :", width);
-    console.log("LINE SPAN :", lineSpan);
 
     if (lensHousingOffset)
     {
@@ -628,8 +624,6 @@ function generateVerticalLinePattern(context, width, height, ratio, frequency, p
     for (var count = 0; count < frequency; ++count)
     {
         var linePos = Math.round((count * lineSpan) + ((phaseShift / (2 * Math.PI)) * lineSpan));
-
-        console.log("LINE POS, COUNT:", linePos, " : ", count);
 
         var lineStart = linePos * 4;
         var lineEnd = lineStart + (4 * measurementLineWidth);
