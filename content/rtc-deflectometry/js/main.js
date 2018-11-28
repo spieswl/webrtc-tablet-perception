@@ -64,7 +64,6 @@ toggleVideoButton.onclick = toggleVideoState;
 // WebRTC features & elements
 var remoteVideoDiv = document.querySelector('div#remoteVideo');
 var remoteVideoCanvas = document.querySelector('video#inFeed');
-var localImgs = document.querySelector('div#localImages');
 var remoteImgs = document.querySelector('div#remoteImages');
 
 var supportedConstraints;
@@ -221,7 +220,6 @@ function sendImage()
 
             var img = canvas.getContext('2d').getImageData(0, 0, tempImage.naturalWidth, tempImage.naturalHeight);
             var len = img.data.byteLength;
-            var n = len / chunkLength | 0;
 
             if (!dataChannel)
             {
@@ -266,6 +264,7 @@ function renderIncomingPhoto(data)
   * TODO: Add function description.
   */
 {
+    // NOTE: DEFLECTOMETRY-SPECIFIC!!!
     analyzeImageBrightness(data);
 
     // Populating the Remote Image div
