@@ -77,6 +77,12 @@ io.on('connection', function(socket)
         socket.broadcast.emit('apply_request', settings);
     });
 
+    socket.on('photo_dimensions', function(imageWidth, imageHeight)
+    {
+        log('Client ID ' + socket.id + ' passed along new photo capture dimensions.');
+        socket.broadcast.emit('photo_dimensions', imageWidth, imageHeight);
+    });
+
     socket.on('settings_response', function(constraints, settings, capabilities)
     {
         log('Client ID ' + socket.id + ' replied to a remote device settings enumeration request.', constraints, settings, capabilities);

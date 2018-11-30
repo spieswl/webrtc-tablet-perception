@@ -14,6 +14,20 @@ var previewVideoHidden = false;
 // Device-specific variables
 
 // Shapeshifter-specific variables
+var localPhotoSettings = 
+{ 
+    fillLightMode:      "off",
+    imageHeight:        1440,
+    imageWidth:         2560,
+    redEyeReduction:    false 
+};
+var remotePhotoSettings =
+{
+    fillLightMode:      "off",
+    imageHeight:        0,
+    imageWidth:         0,
+    redEyeReduction:    false
+}
 
 // Control elements
 const connectButton = document.querySelector('button#connect');
@@ -56,13 +70,7 @@ var imageRcvCount = 0;
 // Resolved constraints
 var resolvedConstraints = 
 {
-    video: 
-    {
-        deviceId:   "",
-
-        height:     {exact: 720},
-        width:      {exact: 1280}
-    }
+    video:  { deviceId: "" }
 };
 
 
@@ -161,16 +169,10 @@ function sendImage()
   * TODO: Add function description.
   */
 {
-    var photoSettings = 
-    { 
-        fillLightMode:      "off",
-        imageHeight:        1440,
-        imageWidth:         2560,
-        redEyeReduction:    false 
-    };
-
-    localImageCapture.takePhoto(photoSettings).then(imgBlob =>
+    localImageCapture.takePhoto(localPhotoSettings).then(imgBlob =>
     {
+        socket.emit('photo_dimensions', localPhotoSettings.imageWidth, localPhotoSettings.imageHeight);
+
         // Generate an image from the blob
         var tempImage = document.createElement('img');
         tempImage.src = URL.createObjectURL(imgBlob);
@@ -179,8 +181,8 @@ function sendImage()
         {
             // Local canvas for temporary storage
             var canvas = document.createElement('canvas');
-            canvas.width = 2560; //tempImage.naturalWidth;
-            canvas.height = 1440; //tempImage.naturalHeight;
+            canvas.width = localPhotoSettings.imageWidth;
+            canvas.height = localPhotoSettings.imageHeight;
             canvas.getContext('2d').drawImage(tempImage, 0, 0, canvas.width, canvas.height);
 
             // Split data channel message in chunks of this byte length.
@@ -237,8 +239,8 @@ function renderIncomingPhoto(data)
 {
     // Populating the Remote Image div
     var canvas = document.createElement('canvas');
-    canvas.width = 2560; //remoteCapabilities.width.max;
-    canvas.height = 1440; //remoteCapabilities.height.max;
+    canvas.width = remotePhotoSettings.imageWidth;
+    canvas.height = remotePhotoSettings.imageHeight;
     canvas.classList.add('remoteImages');
     remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
     
