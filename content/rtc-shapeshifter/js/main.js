@@ -12,8 +12,6 @@ var sequenceCounter = 0;
 var previewVideoHidden = false;
 
 // Device-specific variables
-
-// Shapeshifter-specific variables
 var localPhotoSettings = 
 { 
     fillLightMode:      "off",
@@ -27,7 +25,9 @@ var remotePhotoSettings =
     imageHeight:        0,
     imageWidth:         0,
     redEyeReduction:    false
-}
+};
+
+// Shapeshifter-specific variables
 
 // Control elements
 const connectButton = document.querySelector('button#connect');

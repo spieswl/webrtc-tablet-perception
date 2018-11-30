@@ -64,6 +64,14 @@ socket.on('apply_request', function(settings)
     applyNewConstraintsFromRemote(settings);
 });
 
+socket.on('photo_dimensions', function(imageWidth, imageHeight)
+{
+    console.log('CLIENT: Received photo capture dimensions from measurement device. Updating remotePhotoSettings now...');
+
+    remotePhotoSettings.imageWidth = imageWidth;
+    remotePhotoSettings.imageHeight = imageHeight;
+});
+
 socket.on('settings_response', function(constraints, settings, capabilities)
 {
     console.log('CLIENT: Updating local controls with capabilities and settings used by remote client user media track.');

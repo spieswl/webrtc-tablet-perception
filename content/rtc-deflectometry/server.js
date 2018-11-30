@@ -82,6 +82,12 @@ io.on('connection', function(socket)
         log('Client ID ' + socket.id + ' requested that the remote measurement device use the packaged settings.', settings);
         socket.broadcast.emit('apply_request', settings);
     });
+    
+    socket.on('photo_dimensions', function(imageWidth, imageHeight)
+    {
+        log('Client ID ' + socket.id + ' passed along new photo capture dimensions.');
+        socket.broadcast.emit('photo_dimensions', imageWidth, imageHeight);
+    });
 
     socket.on('settings_response', function(constraints, settings, capabilities)
     {
