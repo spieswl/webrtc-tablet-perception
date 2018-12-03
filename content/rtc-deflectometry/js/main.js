@@ -17,8 +17,8 @@ var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio)
 var localPhotoSettings = 
 { 
     fillLightMode:      "off",
-    imageHeight:        1440,
-    imageWidth:         2560,
+    imageHeight:        1080,       // Resolution forced to fit the Shield tablet capabilities
+    imageWidth:         1440,
     redEyeReduction:    false 
 };
 var remotePhotoSettings =
@@ -99,13 +99,7 @@ var imageRcvCount = 0;
 // Resolved constraints
 var resolvedConstraints = 
 {
-    video: 
-    {
-        deviceId:   "",
-
-        height:     {exact: 720},
-        width:      {exact: 1280}
-    }
+    video: { deviceId: "" }
 };
 
 

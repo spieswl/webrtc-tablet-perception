@@ -15,8 +15,8 @@ var previewVideoHidden = false;
 var localPhotoSettings = 
 { 
     fillLightMode:      "off",
-    imageHeight:        1440,
-    imageWidth:         2560,
+    imageHeight:        1440,       // Resolution forced to fit the capabilities of the OnePlus 3T.
+    imageWidth:         2560,       // NOTE: Needs to be 16:9
     redEyeReduction:    false 
 };
 var remotePhotoSettings =
