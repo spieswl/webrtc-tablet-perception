@@ -16,23 +16,19 @@ var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
 var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio);
 var localPhotoSettings = 
 { 
-    fillLightMode:      "off",
     imageHeight:        1080,       // Resolution forced to fit the Shield tablet capabilities
     imageWidth:         1440,
-    redEyeReduction:    false 
 };
 var remotePhotoSettings =
 {
-    fillLightMode:      "off",
     imageHeight:        0,
     imageWidth:         0,
-    redEyeReduction:    false
 };
 
 // Deflectometry-specific variables and elements
 var calibInterval;
 var calibPixValue = 0;
-var frequencyArray = [ 1, 2, 2.5, 3, 3.5, 5 ];
+var frequencyArray = [ 1, 2 ]; //, 2.5, 3, 3.5, 5 ];
 var targetType = 0;
 var targetFrequency = 10;
 var targetPhaseShift = 0;
@@ -555,7 +551,7 @@ function cyclePattern()
             sequenceCounter++;
             if (sequenceCounter === frequencyArray.length)      // End of capture sequence for all frequencies in a particular type group
             {
-                if (targetType === 2)                           // End of capture sequence for all types
+                if (targetType === 3)                           // End of capture sequence for all types
                 {
                     targetType = 0;
                     clearInterval(sequenceInterval);
@@ -636,6 +632,7 @@ function generateVerticalLinePattern(context, width, height, ratio, frequency, p
   * TODO: Add function description.
   */
 {
+    var hStart = 0;
     var vStart = 0;
     var lineSpan = width / (frequency * ratio);
     var patternData = generateBlackPattern(context, width, height);
@@ -652,14 +649,21 @@ function generateVerticalLinePattern(context, width, height, ratio, frequency, p
         var lineStart = linePos * 4;
         var lineEnd = lineStart + (4 * measurementLineWidth);
 
-        for (var i = lineStart; i < lineEnd; i += 4)
+        if (lineStart < hStart)
         {
-            for (var k = vStart; k < height; k += 1)
+            continue;
+        }
+        else
+        {
+            for (var i = lineStart; i < lineEnd; i += 4)
             {
-                patternData.data[(4*k*width)+i+0] = 255;
-                patternData.data[(4*k*width)+i+1] = 255;
-                patternData.data[(4*k*width)+i+2] = 255;
-                patternData.data[(4*k*width)+i+3] = 255;
+                for (var k = vStart; k < height; ++k)
+                {
+                    patternData.data[(4*k*width)+i+0] = 255;
+                    patternData.data[(4*k*width)+i+1] = 255;
+                    patternData.data[(4*k*width)+i+2] = 255;
+                    patternData.data[(4*k*width)+i+3] = 255;
+                }
             }
         }
     }
@@ -672,11 +676,36 @@ function generateHorizontalLinePattern(context, width, height, ratio, frequency,
   * TODO: Add function description.
   */
 {
-    // TBD
+    var vStart = 0;
+    var lineSpan = height / (frequency * ratio);
+    var patternData = generateBlackPattern(context, width, height);
+
+    if (lensHousingOffset)
+    {
+        vStart = lensHousingOffset * 4;
+    }
+
+    for (var count = 0; count < frequency; ++count)
+    {
+        var linePos = Math.round((count * lineSpan) + ((phaseShift / (2 * Math.PI)) * lineSpan));
+
+        var lineStart = linePos;
+        var lineEnd = lineStart + (measurementLineWidth);
+
+        for (var i = lineStart; i < lineEnd; ++i)
+        {
+            for (var k = vStart; k < (width * 4); k += 4)
+            {
+                patternData.data[(4*i*width)+k+0] = 255;
+                patternData.data[(4*i*width)+k+1] = 255;
+                patternData.data[(4*i*width)+k+2] = 255;
+                patternData.data[(4*i*width)+k+3] = 255;
+            }
+        }
+    }
 
     return patternData;
 }
-
 
 function generateBlackPattern(context, width, height)
 /**
