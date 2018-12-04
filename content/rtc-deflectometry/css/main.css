@@ -41,7 +41,7 @@ button {
     padding: 0.5em 0.7em 0.6em 0.7em;
 }
 
-button#showPattern, button#showWhiteImage, button#toggleVideo {
+button#showFringePattern, button#showLinePattern, button#showWhiteImage, button#toggleVideo {
     background-color: #407bfa;
 }
 

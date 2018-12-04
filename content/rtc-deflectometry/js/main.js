@@ -1,7 +1,12 @@
 /**
-  * TODO: Add file description.
+  * This file contains JavaScript which enables application-specific functions in
+  * support of "rtc-deflectometry". Math functions, DOM element hooks, global
+  * variables, and other things which belong in the "main" function exist in this
+  * file. This file is supported by code in 'socket.js', 'webrtc.js', and (if
+  * needed), 'constraintControls.js'.
   * 
-  * 
+  * Always check this file first when debugging, and make any application-specific
+  * modifications in this file, if necessary and possible to do so.
   */
 
 'use strict';
@@ -16,8 +21,8 @@ var effScreenWidth = Math.round(window.screen.width * window.devicePixelRatio);
 var effScreenHeight = Math.round(window.screen.height * window.devicePixelRatio);
 var localPhotoSettings = 
 { 
-    imageHeight:        1080,       // Resolution forced to fit the Shield tablet capabilities
-    imageWidth:         1440,
+    imageHeight:        1080,           // Resolution forced to fit the 
+    imageWidth:         1440,           // Shield tablet capabilities
 };
 var remotePhotoSettings =
 {
@@ -28,17 +33,17 @@ var remotePhotoSettings =
 // Deflectometry-specific variables and elements
 var calibInterval;
 var calibPixValue = 0;
-var frequencyArray = [ 1, 2 ]; //, 2.5, 3, 3.5, 5 ];
+var frequencyArray = [ 1, 2, 2.5, 3, 3.5, 5 ];              // Change this array to introduce other frequencies.
 var targetType = 0;
 var targetFrequency = 10;
 var targetPhaseShift = 0;
 var remoteType;
 var remoteFrequency;
 var remotePhaseShift;
-var measurementLineWidth = 3;
+var measurementLineWidth = 10;                              // Change this integer to modify the size of the lines (NOT fringes) projected in the measurement process.
 var pattern;
 var overlay;
-var lensHousingOffset = 100;
+var lensHousingOffset = 100;                                // Change (or comment out the value assignment for) this integer to adjust the black bar size on the left of the Shield tablet.
 
 // Button elements
 const connectButton = document.querySelector('button#connect');
@@ -48,7 +53,8 @@ const requestSequenceButton = document.querySelector('button#requestSequence');
 const testImageButton = document.querySelector('button#testImage');
 const requestConfigButton = document.querySelector('button#requestConfig');
 const applyConfigButton = document.querySelector('button#applyConfig');
-const showPatternButton = document.querySelector('button#showPattern');
+const showFringePatternButton = document.querySelector('button#showFringePattern');
+const showLinePatternButton = document.querySelector('button#showLinePattern');
 const showWhiteButton = document.querySelector('button#showWhiteImage');
 const toggleVideoButton = document.querySelector('button#toggleVideo');
 
@@ -59,10 +65,15 @@ requestSequenceButton.onclick = requestSequenceFromRemote;
 testImageButton.onclick = requestImageFromRemote;
 requestConfigButton.onclick = requestConfigFromRemote;
 applyConfigButton.onclick = applyConfigToRemote;
-showPatternButton.onclick = function()
+showFringePatternButton.onclick = function()
 {
     enterFullscreenState();
     initPattern(0);
+}
+showLinePatternButton.onclick = function()
+{
+    enterFullscreenState();
+    initPattern(1);
 }
 showWhiteButton.onclick = function()
 {
@@ -72,9 +83,9 @@ showWhiteButton.onclick = function()
 toggleVideoButton.onclick = toggleVideoState;
 
 // WebRTC features & elements
-var remoteVideoDiv = document.querySelector('div#remoteVideo');
-var remoteVideoCanvas = document.querySelector('video#inFeed');
-var remoteImgs = document.querySelector('div#remoteImages');
+var remoteVideoDiv = document.querySelector('div#remoteVideo');                 // May not be needed when 'aiortc' is implemented
+var remoteVideoCanvas = document.querySelector('video#inFeed');                 // May not be needed when 'aiortc' is implemented
+var remoteImgs = document.querySelector('div#remoteImages');                    // May not be needed when 'aiortc' is implemented
 
 var supportedConstraints;
 var videoDevices = [];
@@ -84,13 +95,13 @@ var localStream;
 var localConstraints;
 var localSettings;
 var localCapabilities;
-var remoteStream;
-var remoteConstraints;
-var remoteSettings;
-var remoteCapabilities;
+var remoteStream;                       // May not be needed when 'aiortc' is implemented
+var remoteConstraints;                  // May not be needed when 'aiortc' is implemented
+var remoteSettings;                     // May not be needed when 'aiortc' is implemented
+var remoteCapabilities;                 // May not be needed when 'aiortc' is implemented
 
 var imageSendCount = 0;
-var imageRcvCount = 0;
+var imageRcvCount = 0;                  // May not be needed when 'aiortc' is implemented
 
 // Resolved constraints
 var resolvedConstraints = 
@@ -103,7 +114,11 @@ var resolvedConstraints =
 
 function initialize()
 /**
-  * TODO: Add function description.
+  * First function to run when the browser executes JavaScript code in the window.
+  * 
+  * This calls getUserMedia() so we can interact with and fetch information about
+  * device constraints and capabilities, send a video stream to the other client,
+  * etc.
   */
 {
     // Recover constrainable properties supported by the browser
@@ -135,7 +150,7 @@ function initialize()
 }
 
 function connect()
-//  TODO: Add function description.
+//  Simple function, tied to a button element, that initiates a WebRTC peer connection.
 {
     connectButton.disabled = true;
 
@@ -143,14 +158,20 @@ function connect()
 }
 
 function stopVideo()
-//  TODO: Add function description.
+//  Simple function, that can be tied to a button element, that stops all video tracks used
+//  by the client.
+//
+//  Not currently used.
 {
     localStream.getTracks().forEach(track => { track.stop(); });
 }
 
 function gotStream(stream)
 /**
-  * TODO: Add function description.
+  * Internal function for handling the Promised stream returned by getUserMedia().
+  * 
+  * Assignment for ImageCapture and other video- or photo-consuming elements needs to 
+  * be done after getting the video track from getUserMedia().
   */
 {
     localStream = stream;
@@ -166,40 +187,44 @@ function gotStream(stream)
 }
 
 function requestCalibrationFromRemote()
-/**
-  * TODO: Add function description.
-  */
+//  Function tied to a button that asks the other device (typically the measuring device)
+//  via Socket.IO for a set of calibration images.
 {
     socket.emit('calib_request');
 }
 
 function requestSequenceFromRemote()
-/**
-  * TODO: Add function description.
-  */
+//  Function tied to a button that asks the other device (typically the measuring device)
+//  via Socket.IO to start the measurement process, which is setup in another function.
 {
     socket.emit('sequence_request');
 }
 
 function requestImageFromRemote()
-/**
-  * TODO: Add function description.
-  */
+//  Function tied to a button that asks the other device (typically the measuring device)
+//  via Socket.IO to call sendImage() and transfer the resulting image to the host device.
 {
     socket.emit('image_request');
 }
 
 function requestConfigFromRemote()
-/**
-  * TODO: Add function description.
-  */
+//  Function tied to a button that asks the other device (typically the measuring device)
+//  via Socket.IO to query the device's capabilities, settings, and applied constraints.
+//  It then transfers them across the Socket.IO interface.
 {
     socket.emit('settings_request');
 }
 
 function sendImage()
 /**
-  * TODO: Add function description.
+  * This function is called whenever images are requested from a remote device or as part
+  * of a dedicated capture sequence. Capturing images via the ImageCapture API, repacking
+  * them, and sending them across the RTCDataChannel is all combined into this function.
+  * 
+  * The RTCDataChannel should be an established part of the RTCPeerConnection in order to
+  * successfully transmit image data across the connection. Note that these images are
+  * intentionally not compressed or sent via other methods to preserve all of the image
+  * data.
   */
 {
     localImageCapture.takePhoto(localPhotoSettings).then(imgBlob =>
@@ -267,7 +292,11 @@ function sendImage()
 
 function renderIncomingPhoto(data)
 /**
-  * TODO: Add function description.
+  * Whenever a full image is received on the RTCDataChannel, this function is called to
+  * take the image data and convert it into a an image that can be downloaded by the host
+  * client.
+  * 
+  * The incoming image also gets appended to the remoteImages div on the client's webpage.
   */
 {
     // NOTE: DEFLECTOMETRY-SPECIFIC!!!
@@ -299,9 +328,9 @@ function renderIncomingPhoto(data)
 }
 
 function analyzeImageBrightness(data)
-/**
-  * TODO: Add function description.
-  */
+//  Simple function to do some byte-wise comparison of image data coming from a measurement
+//  device. As the data is passed over in RGBA format, we check the first three channels
+//  for the respective color information, and display that in the local browser's console.
 {
     var pxLength = data.length / 4;
     var hiR = 0, locR = 0;
@@ -336,7 +365,13 @@ function analyzeImageBrightness(data)
 
 function getStreamFeedback(stream)
 /**
-  * TODO: Add function description.
+  * Calling this function sets a number of global variables to the respetive client that
+  * carry information about the local device's constraints, settings, and capabilities.
+  * 
+  * This information is critical to inform the local user or remote device what is
+  * possible involving the video/audio devices here on the local device. Additionally,
+  * this is how the maximum image resolution for a particular camera is discovered (min
+  * and max values from the height and width variables can be accessed).
   */
 {
     let track = stream.getVideoTracks()[0];
@@ -376,9 +411,9 @@ function getStreamFeedback(stream)
 }
 
 function applyConfigToRemote()
-/**
-  * TODO: Add function description.
-  */
+//  Function tied to a button that asks the other device (typically the measuring device)
+//  via Socket.IO to immediately apply a set of constraints to that device's active video
+//  track.
 {
     let newSettings = assembleNewConfigForRemote();
 
@@ -388,9 +423,9 @@ function applyConfigToRemote()
 }
 
 function applyNewConstraintsFromRemote(constraints)
-/**
-  * TODO: Add function description.
-  */
+//  This function responds to a request received on the Socket.IO interface to apply the
+//  included constraints object. The newly constrained device will report back with the
+//  results of the constraining procedure.
 {
     let track = localStream.getVideoTracks()[0];
 
@@ -410,13 +445,15 @@ function applyNewConstraintsFromRemote(constraints)
 }
 
 function emitReady()
-//  TODO: Add function description.
+//  Function tied to a button that signals to the other device(s) it is available for
+//  establishing a connection via RTCPeerConnection.
 {
     socket.emit('ready');
 }
 
 function toggleVideoState()
-//  TODO: Add function description.
+//  Function tied to a button that hides the remote video preview element on the
+//  local webpage.
 {
     previewVideoHidden = !previewVideoHidden;
 
@@ -425,9 +462,7 @@ function toggleVideoState()
 }
 
 function enterFullscreenState()
-/**
-  * TODO: Add function description.
-  */
+//  Function tied to a button that requests the browser be placed into fullscreen mode.
 {
     if      (document.documentElement.requestFullScreen)            { document.documentElement.requestFullScreen(); }
     else if (document.documentElement.mozRequestFullScreen)         { document.documentElement.mozRequestFullScreen(); }
@@ -435,9 +470,8 @@ function enterFullscreenState()
 }
 
 function exitFullScreenState()
-/**
-  * TODO: Add function description.
-  */
+//  Function tied to a button that requests the browser exit fullscreen mode and return
+//  to its normal display configuration.
 {
     if      (document.cancelFullScreen)         { document.cancelFullScreen(); }
     else if (document.msCancelFullScreen)       { document.msCancelFullScreen(); }
@@ -449,7 +483,17 @@ function exitFullScreenState()
 
 function initPattern(patSwitch)
 /**
-  * TODO: Add function description.
+  * Before showing any custom, full-white, or full-black pattern, the (now) full-screen
+  * browser must have a new canvas element that sits over top of the normally displayed
+  * webpage. This canvas is created and destroyed as full-screen is enabled and disabled,
+  * so that the website remains usable.
+  * 
+  * patSwitch allows the calling entity to decide what kind of pattern is to be displayed
+  * when the full-screen canvas element is initialized. Regardless of pattern being
+  * displayed, calibration or measurement sequences can be called at any time.
+  * 
+  * This and showPattern() definitely have some overlap that can be refactored into something
+  * more modular and clean.
   */
 {
     // Overlay setup
@@ -486,9 +530,9 @@ function initPattern(patSwitch)
 
     if (patSwitch === 1)
     {
-        // Display a black pattern
+        // Display a vertical line pattern
         patCtx = pattern.getContext('2d');
-        patData = generateBlackPattern(patCtx, effScreenWidth, effScreenHeight);
+        patData = generateVerticalLinePattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 2, Math.PI);
     }
     else if (patSwitch === 2)
     {
@@ -496,9 +540,15 @@ function initPattern(patSwitch)
         patCtx = pattern.getContext('2d');
         patData = generateWhitePattern(patCtx, effScreenWidth, effScreenHeight);
     }
+    else if (patSwitch === 3)
+    {
+        // Display a black pattern
+        patCtx = pattern.getContext('2d');
+        patData = generateBlackPattern(patCtx, effScreenWidth, effScreenHeight);
+    }
     else
     {
-        // Normal operation is to start out with a dummy pattern for placement and alignment purposes, locked to 10 cycles
+        // Normal operation is to start out with a dummy fringe pattern for placement and alignment purposes, locked to 10 cycles
         patCtx = pattern.getContext('2d');
         patData = generateVerticalFringePattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, 10, targetPhaseShift);
     }
@@ -508,9 +558,11 @@ function initPattern(patSwitch)
     document.body.appendChild(overlay);
 }
 
-function showPattern(type, frequency,  phaseShift)
+function showPattern(type, frequency, phaseShift)
 /**
-  * TODO: Add function description.
+  * Conditional display function. Pattern is a global variable that corresponds to
+  * the full-screen element that will display the requested pattern with the specified
+  * characteristics.
   */
 {
     var patCtx = pattern.getContext('2d');
@@ -520,6 +572,7 @@ function showPattern(type, frequency,  phaseShift)
     else if (type === 1)    { patData = generateHorizontalFringePattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
     else if (type === 2)    { patData = generateVerticalLinePattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
     else if (type === 3)    { patData = generateHorizontalLinePattern(patCtx, effScreenWidth, effScreenHeight, window.devicePixelRatio, frequency, phaseShift); }
+    else if (type === 98)   { patData = generateCalibPattern(patCtx, effScreenWidth, effScreenHeight); }
     else                    { patData = generateBlackPattern(patCtx, effScreenWidth, effScreenHeight); }
 
     patCtx.putImageData(patData, 0, 0);
@@ -527,7 +580,13 @@ function showPattern(type, frequency,  phaseShift)
 
 function cyclePattern()
 /**
-  * TODO: Add function description.
+  * Once a measurement sequence is requested, this function will display a new pattern
+  * made with the current set of variables, change the variables for the next pass, and
+  * set a timer for a function that captures data (so changing the display and 
+  * capturing new data isn't simultaneous) and checks to see if the sequence is finished.
+  * 
+  * Change the integer at the end of setTimeout() to adjust how long of a delay exists
+  * between pattern changing and image data being captured.
   */
 {
     targetFrequency = frequencyArray[sequenceCounter];
@@ -567,7 +626,18 @@ function cyclePattern()
 
 function generateVerticalFringePattern(context, width, height, ratio, frequency, phaseShift)
 /**
-  * TODO: Add function description.
+  * Deflectometry-specific vertical (when viewed in landscape mode) fringe synthesis
+  * function. This returns an pattern that has continuous, sinusoidal shape that is displayed
+  * (and shifted) in order to measure the surface normals of an object under test.
+  * Several parameters can be changed, either through the function call, or through
+  * global variables, to change the data returned by this function.
+  * 
+  * NOTE: lensHousingOffset MUST exist to avoid any uncaught exceptions when this function
+  * triggers, but the conditional will not fire if the value isn't set (or explicitly
+  * assigned to NULL).
+  * 
+  * ALSO NOTE: Vertical and horizontal ranges are different due to the addressing scheme
+  * for changing pixel data values on a color display.
   */
 {
     var hStart = 0;
@@ -598,7 +668,18 @@ function generateVerticalFringePattern(context, width, height, ratio, frequency,
 
 function generateHorizontalFringePattern(context, width, height, ratio, frequency, phaseShift)
 /**
-  * TODO: Add function description.
+  * Deflectometry-specific horizontal (when viewed in landscape mode) fringe synthesis
+  * function. This returns an pattern that has continuous, sinusoidal shape that is displayed
+  * (and shifted) in order to measure the surface normals of an object under test.
+  * Several parameters can be changed, either through the function call, or through
+  * global variables, to change the data returned by this function.
+  * 
+  * NOTE: lensHousingOffset MUST exist to avoid any uncaught exceptions when this function
+  * triggers, but the conditional will not fire if the value isn't set (or explicitly
+  * assigned to NULL).
+  * 
+  * ALSO NOTE: Vertical and horizontal ranges are different due to the addressing scheme
+  * for changing pixel data values on a color display.
   */
 {
     var hStart = 0;
@@ -629,7 +710,17 @@ function generateHorizontalFringePattern(context, width, height, ratio, frequenc
 
 function generateVerticalLinePattern(context, width, height, ratio, frequency, phaseShift)
 /**
-  * TODO: Add function description.
+  * Deflectometry-specific vertical (when viewed in landscape mode) line synthesis function.
+  * This returns an object that is displayed (and shifted) in order to measure the surface
+  * normals of an object under test. Several parameters can be changed, either through the
+  * function call, or through global variables, to change the data returned by this function.
+  * 
+  * NOTE: lensHousingOffset MUST exist to avoid any uncaught exceptions when this function
+  * triggers, but the conditional will not fire if the value isn't set (or explicitly
+  * assigned to NULL).
+  * 
+  * ALSO NOTE: Vertical and horizontal ranges are different due to the addressing scheme
+  * for changing pixel data values on a color display.
   */
 {
     var hStart = 0;
@@ -673,7 +764,17 @@ function generateVerticalLinePattern(context, width, height, ratio, frequency, p
 
 function generateHorizontalLinePattern(context, width, height, ratio, frequency, phaseShift)
 /**
-  * TODO: Add function description.
+  * Deflectometry-specific horizontal (when viewed in landscape mode) line synthesis function.
+  * This returns an object that is displayed (and shifted) in order to measure the surface
+  * normals of an object under test. Several parameters can be changed, either through the
+  * function call, or through global variables, to change the data returned by this function.
+  * 
+  * NOTE: lensHousingOffset MUST exist to avoid any uncaught exceptions when this function
+  * triggers, but the conditional will not fire if the value isn't set (or explicitly
+  * assigned to NULL).
+  * 
+  * ALSO NOTE: Vertical and horizontal ranges are different due to the addressing scheme
+  * for changing pixel data values on a color display.
   */
 {
     var vStart = 0;
@@ -709,7 +810,16 @@ function generateHorizontalLinePattern(context, width, height, ratio, frequency,
 
 function generateBlackPattern(context, width, height)
 /**
-  * TODO: Add function description.
+  * Deflectometry-specific full black screen generation function. This returns an object
+  * that has can be used in the deflectometry calibration sequence or as a part of a
+  * customized measurement sequence.
+  * 
+  * NOTE: lensHousingOffset MUST exist to avoid any uncaught exceptions when this function
+  * triggers, but the conditional will not fire if the value isn't set (or explicitly
+  * assigned to NULL).
+  * 
+  * ALSO NOTE: Vertical and horizontal ranges are different due to the addressing scheme
+  * for changing pixel data values on a color display.
   */
 {
     var hStart = 0;
@@ -734,7 +844,16 @@ function generateBlackPattern(context, width, height)
 
 function generateWhitePattern(context, width, height)
 /**
-  * TODO: Add function description.
+  * Deflectometry-specific full white screen generation function. This returns an object
+  * that has can be used in the deflectometry calibration sequence or as a part of a
+  * customized measurement sequence.
+  * 
+  * NOTE: lensHousingOffset MUST exist to avoid any uncaught exceptions when this function
+  * triggers, but the conditional will not fire if the value isn't set (or explicitly
+  * assigned to NULL).
+  * 
+  * ALSO NOTE: Vertical and horizontal ranges are different due to the addressing scheme
+  * for changing pixel data values on a color display.
   */
 {
     var hStart = 0;
@@ -760,22 +879,15 @@ function generateWhitePattern(context, width, height)
     return patternData;
 }
 
-function showCalibPattern()
-/**
-  * TODO: Add function description.
-  */
-{
-    var patCtx = pattern.getContext('2d');
-    var patData = generateCalibPattern(patCtx, effScreenWidth, effScreenHeight);
-    patCtx.putImageData(patData, 0, 0);
-}
-
 function cycleCalibration()
 /**
-  * TODO: Add function description.
+  * This function is a variation on the measurement sequence that instead shows the
+  * calibration pattern. The calibration pattern values will update inside the
+  * generateCalibPattern() function, so all that is required is to check for when
+  * the calibration sequence is complete.
   */
 {
-    showCalibPattern();
+    showPattern(98, 0, 0);
 
     setTimeout(function()
     {
@@ -784,7 +896,7 @@ function cycleCalibration()
         sendImage();
         imageSendCount++;
 
-        if (calibPixValue === 255)                          // End of capture sequence for the calib sequence
+        if (calibPixValue === 255)      // End of capture condition for the calibration sequence.
         {
             imageSendCount = 0;
             calibPixValue = 0;
@@ -797,7 +909,15 @@ function cycleCalibration()
 
 function generateCalibPattern(context, width, height)
 /**
-  * TODO: Add function description.
+  * Deflectometry-specific calibration pattern generation function. This returns an object
+  * that has specific relevance to the deflectometry calibration sequence.
+  * 
+  * NOTE: lensHousingOffset MUST exist to avoid any uncaught exceptions when this function
+  * triggers, but the conditional will not fire if the value isn't set (or explicitly
+  * assigned to NULL).
+  * 
+  * ALSO NOTE: Vertical and horizontal ranges are different due to the addressing scheme
+  * for changing pixel data values on a color display.
   */
 {
     var hStart = 0;
@@ -833,9 +953,8 @@ function generateCalibPattern(context, width, height)
 /////////////////////////////// UTILITY FUNCTIONS //////////////////////////////
 
 function handleError(error)
-/**
-  * TODO: Add function description.
-  */
+//  This function is a simple error handler. It has not been exhaustively tested, but
+//  it works for the limited number of cases that have come up.
 {
     if (typeof error === 'string')
     {

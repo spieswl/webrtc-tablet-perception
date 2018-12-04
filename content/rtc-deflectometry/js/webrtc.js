@@ -1,7 +1,11 @@
 /**
-  * TODO: Add file description.
+  * WebRTC serves as the backbone for device-to-device video and photographic capture
+  * and communication. getUserMedia(), RTCPeerConnection, and RTCDataChannel are all
+  * used to implement a device-to-device image capture and relay system in 'webrtc-
+  * perception' so changes here are not to be taken lightly.
   * 
-  * 
+  * Reference "adapter.js" for more browser-specific details regarding WebRTC:
+  * https://github.com/webrtc/adapter
   */
 
 'use strict';
@@ -15,7 +19,12 @@ var dataChannel;
 
 function createPeerConnection(isInitiator, config)
 /**
-  * TODO: Add function description.
+  * Upon connection request, each client must negotiate their end of the WebRTC peer
+  * connection. Additionally, video track information (taken from an active video stream
+  * on the client side) needs to be added to the peer connection.
+  * 
+  * A number of other utility functions are used to facilitate the setup of the peer
+  * connection and the data channel interface.
   */
 {
     console.log('CLIENT: Creating peer connection as initiator?', isInitiator, 'Config?', config);
@@ -69,7 +78,8 @@ function createPeerConnection(isInitiator, config)
 
 function onLocalSessionCreated(desc)
 /**
-  * TODO: Add function description.
+  * The local session "description" contains critical information about the established
+  * WebRTC peer connection and is used to synchronize with other clients.
   */
 {
     peerConn.setLocalDescription(desc, function() { socket.emit('message', peerConn.localDescription); }, handleError);
@@ -77,7 +87,9 @@ function onLocalSessionCreated(desc)
 
 function onDataChannelCreated(channel)
 /**
-  * TODO: Add function description.
+  * This function is called when the WebRTC data channel is successfully created and
+  * allows for simple reconfiguration of website behavior when data can be passed back
+  * and forth.
   */
 {
     channel.onopen = function()
@@ -102,7 +114,10 @@ function onDataChannelCreated(channel)
 
 function receiveDataChromeFactory()
 /**
-  * TODO: Add function description.
+  * One particular side effect of using the WebRTC data channel is that browser-specific
+  * data handling needs to be defined. This function is called if a client (of no
+  * particular browser version) ends up passing data (the onmessage event fires) to another
+  * client that is using a Webkit-based browser.
   */
 {
     var buf, count;
@@ -133,7 +148,10 @@ function receiveDataChromeFactory()
 
 function receiveDataFirefoxFactory()
 /**
-  * TODO: Add function description.
+  * One particular side effect of using the WebRTC data channel is that browser-specific
+  * data handling needs to be defined. This function is called if a client (of no
+  * particular browser version) ends up passing data (the onmessage event fires) to another
+  * client that is using Mozilla Firefox.
   */
 {
     var count, total, parts;

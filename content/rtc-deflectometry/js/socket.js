@@ -1,7 +1,14 @@
 /**
-  * TODO: Add file description.
+  * In addition to WebRTC, 'webrtc-perception' uses a straightforward messaging
+  * channel for some of the non-video- or photo-related capabilities, such as
+  * transferring information about device capabilities, relaying measurement data
+  * in nicely formatted data structures, and simplifying the process of adding
+  * new interactions between remote and host clients.
   * 
-  * 
+  * This code is _mostly_ application-agnostic. Specific measurement techniques
+  * may require additional interactions, such as requesting a device calibration,
+  * so be sure to pay attention to this file when migrating fixes or changes from
+  * other 'webrtc-perception' applications.
   */
 
 'use strict';
@@ -120,7 +127,14 @@ socket.on('bye', function()
 
 function signalingMessageCallback(message)
 /**
-  * TODO: Add function description.
+  * When a client receives a Socket.IO communique of type 'message', particular
+  * client behavior is defined by the conditional statement in this function.
+  * 
+  * The 'message' communique type is reserved, in this implementation, for WebRTC
+  * signalling.
+  * 
+  * This function isn't _strictly_ necessary, as long as the contained code moves to
+  * the proper socket callback.
   */
 {
     if (message.type === 'offer')
