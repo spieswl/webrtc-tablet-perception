@@ -1,7 +1,11 @@
 /**
-  * TODO: Add file description.
+  * This file contains code for reading and updating JavaScript objects with settings
+  * and constraints to be used with the MediaStreams API in WebRTC. This code is
+  * application-agnostic, and should track the available properties as described in
+  * the W3C MediaStream Image Capture API documentation, found at these URLs:
   * 
-  * 
+  * https://www.w3.org/TR/image-capture/#mediatracksupportedconstraints-section
+  * https://www.w3.org/TR/image-capture/#mediatrackcapabilities-section
   */
 
 'use strict';
@@ -32,7 +36,13 @@ const torchSelector = document.getElementsByName('torchCtrl');
 
 function updateWithRemoteSettings(constraints, settings, capabilities)
 /**
-  * TODO: Add function description.
+  * This function ties into every DOM element in the client webpage, fetches the
+  * settings and other information retrieved from the remote device, and updates the
+  * values, range minimums and maximums, and removes the disabled flag if the
+  * relevant feature is supported by the remote device.
+  * 
+  * This function should be automatically called when a remote settings request
+  * returns remote device configuration data.
   */
 {
     // Using settings and capabilities to modify on-page controls - not all controls are supported!!!
@@ -237,7 +247,16 @@ function updateWithRemoteSettings(constraints, settings, capabilities)
 
 function assembleNewConfigForRemote()
 /**
-  * TODO: Add function description.
+  * Once the local settings interface is aligned with the capabilities of the remote
+  * device, controls are unlocked for the user to "constrain" the operation of the
+  * video track in use on the remote device.
+  * 
+  * In order to do so, this takes the desired settings (assumed to be the current
+  * slider and radio button status on button press), packages them in a WebRTC-like
+  * fashion, and transmits them to the remote device.
+  * 
+  * At the moment, device-specific implementation issues abound. Make sure you review
+  * the operation of each device being "controlled" via this system.
   */
 {
     let newConstraints = { /* width: { exact: "" },*/ advanced: [{}] };

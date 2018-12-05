@@ -37,7 +37,7 @@ socket.on('message', function(message)
 
 socket.on('image_request', function()
 {
-    console.log('Received request to send a test image. Sending one image now...');
+    console.log('CLIENT: Received request to send a test image. Sending one image now...');
     sendImage();
 });
 

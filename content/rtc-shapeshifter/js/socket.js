@@ -1,7 +1,14 @@
 /**
-  * TODO: Add file description.
+  * In addition to WebRTC, 'webrtc-perception' uses a straightforward messaging
+  * channel for some of the non-video- or photo-related capabilities, such as
+  * transferring information about device capabilities, relaying measurement data
+  * in nicely formatted data structures, and simplifying the process of adding
+  * new interactions between remote and host clients.
   * 
-  * 
+  * This code is _mostly_ application-agnostic. Specific measurement techniques
+  * may require additional interactions, such as requesting a device calibration,
+  * so be sure to pay attention to this file when migrating fixes or changes from
+  * other 'webrtc-perception' applications.
   */
 
 'use strict';
@@ -38,7 +45,8 @@ socket.on('sequence_request', function()
 {
     console.log('CLIENT: Received request to start capture sequence. Starting capture sequence now...');
     imageSendCount = 0;
-    sequenceInterval = setInterval(captureSequence, 15000);
+
+    captureSequence();
 });
 
 socket.on('settings_request', function()
