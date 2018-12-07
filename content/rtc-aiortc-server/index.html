@@ -23,9 +23,28 @@
 </head>
 
 <body>
-    <button id="start" onclick="start()">Start</button>
-    <button id="stop" style="display: none" onclick="stop()">Stop</button>
+    <div id="container">
+        <h1><span>aiortc Server Test</span></h1>
+        <p>
+            Nothing special at the moment, checking image transfer via the RTC Data Channel.
+        </p>
 
-    <script src="main.js"></script>
+        <div class="buttons">
+            <div id="buttonsLeft">
+                <button id="connect">Connect</button>
+                <button id="disconnect" disabled>Disconnect</button>
+            </div>
+        </div>
+
+        <section>
+            <div class="videoFeeds" style="text-align: center;">
+                Video Feed Loopback (Client -> Server -> Client)<br>
+                <video id="loopback" playsinline autoplay muted></video><br>
+            </div>
+        </section>
+    
+    </div>
+
+    <script src="js/main.js"></script>
 </body>
 </html>

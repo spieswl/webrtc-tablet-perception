@@ -1,20 +1,150 @@
-button {
-    padding: 8px 16px;
+
+.hidden {
+    display: none;
 }
 
-pre {
-    overflow-x: hidden;
-    overflow-y: auto;
+body {
+    font-weight: 300;
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 2em;
+    word-break: break-word;
+}
+
+button {
+    background-color: #f15b15;
+    border: none;
+    border-radius: 2px;
+    color: #ffffff;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.9em;
+    text-decoration: none;
+    height: 40px;
+    width: 130px;
+    margin: 0 0 1em 0;
+    padding: 0.5em 0.7em 0.6em 0.7em;
+}
+
+button:active {
+    background-color: #b92c1c;
+}
+
+button:hover {
+    background-color: #b92c1c;
+}
+
+button[disabled] {
+    color: #464646;
+}
+
+button[disabled]:hover {
+    background-color: #f15b15;
+}
+
+div.output {
+    background-color: #eee;
+    display: inline-block;
+    font-family: 'Inconsolata', 'Courier New', monospace;
+    font-size: 0.9em;
+    position: relative;
+    top: 10px;
+    white-space: pre;
+    width: 600px;
+}
+
+div.buttons {
+    display: flex;
+    justify-content: space-between;
+}
+
+div.videoFeeds {
+    display: block;
+    min-width: 600px;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 25px;
+    padding: 25px;
+}
+
+div#buttonsLeft, div#buttonsRight {
+    display: inline-block;
+}
+
+div#container {
+    margin: 0 auto 0 auto;
+    max-width: 80em;
+    padding: 1em 1.5em 1.3em 1.5em;
+}
+
+h1 {
+    border-bottom: 1px solid #c0c0c0;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
+    margin: 0 0 0.8em 0;
+    padding: 0 0 0.2em 0;
+}
+
+h1 a {
+    font-weight: 300;
+    margin: 0 10px 0 0;
+    white-space: nowrap;
+}
+
+h1 span {
+    white-space: nowrap;
+}
+
+h2 {
+    color: #404040;
+    font-weight: 500;
+}
+
+h3 {
+    border-top: 1px solid #e0e0e0;
+    color: #606060;
+    font-weight: 500;
+    margin: 20px 0 10px 0;
+    padding: 10px 0 0 0;
+    white-space: nowrap;
+}
+
+html {
+    overflow-y: scroll;
+}
+
+img {
+    border: none;
+    max-width: 100%;
+}
+
+p {
+    color: #404040;
+    font-weight: 300;
+    line-height: 1.6em;
+}
+
+p.borderBelow {
+    border-bottom: 1px solid #a0a0a0;
+    padding: 0 0 20px 0;
+}
+
+section {
+    border-bottom: 1px solid #e0e0e0;
+    margin: 10px 0 10px 0;
+    padding: 10px 0 10px 0;
+}
+
+section:last-of-type {
+    border-bottom: none;
+    padding: 0;
+}
+
+section p:last-of-type {
+    margin: 0;
 }
 
 video {
-    width: 100%;
-}
-
-.option {
-    margin-bottom: 8px;
-}
-
-#media {
-    max-width: 1280px;
+    background: #202020;
+    position: relative;
+    margin: 10px 0px 30px 0px;
 }
