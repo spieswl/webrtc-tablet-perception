@@ -45,14 +45,14 @@ socket.on('calib_request', function()
 {
     console.log('CLIENT: Received request to start calibration sequence. Starting calibration sequence now...');
     imageSendCount = 0;
-    calibInterval = setInterval(cycleCalibration, 10000);
+    calibInterval = setInterval(cycleCalibration, 2000);
 });
 
 socket.on('sequence_request', function()
 {
     console.log('CLIENT: Received request to start capture sequence. Starting capture sequence now...');
     imageSendCount = 0;
-    sequenceInterval = setInterval(cyclePattern, 10000);
+    sequenceInterval = setInterval(cyclePattern, 2000);
 });
 
 socket.on('settings_request', function()

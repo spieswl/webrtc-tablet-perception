@@ -13,6 +13,7 @@
 
 // Standard constants and variables
 var sequenceInterval;
+var batchInterval;
 var sequenceCounter = 0;
 var previewVideoHidden = false;
 
@@ -33,7 +34,7 @@ var remotePhotoSettings =
 // Deflectometry-specific variables and elements
 var calibInterval;
 var calibPixValue = 0;
-var frequencyArray = [ 1, 2, 2.5, 3, 3.5, 5 ];              // Change this array to introduce other frequencies.
+var frequencyArray = [ 1 ]; //, 2, 2.5, 3, 3.5, 5 ];              // Change this array to introduce other frequencies.
 var targetType = 0;
 var targetFrequency = 10;
 var targetPhaseShift = 0;
@@ -44,6 +45,10 @@ var measurementLineWidth = 10;                              // Change this integ
 var pattern;
 var overlay;
 var lensHousingOffset = 100;                                // Change (or comment out the value assignment for) this integer to adjust the black bar size on the left of the Shield tablet.
+
+var localTypeArray = [];
+var localFreqArray = [];
+var localPhaseArray = [];
 
 // Button elements
 const connectButton = document.querySelector('button#connect');
@@ -83,6 +88,8 @@ showWhiteButton.onclick = function()
 toggleVideoButton.onclick = toggleVideoState;
 
 // WebRTC features & elements
+var localImgs = document.querySelector('div#localImages');                      // May not be needed when 'aiortc' is implemented
+
 var remoteVideoDiv = document.querySelector('div#remoteVideo');                 // May not be needed when 'aiortc' is implemented
 var remoteVideoCanvas = document.querySelector('video#inFeed');                 // May not be needed when 'aiortc' is implemented
 var remoteImgs = document.querySelector('div#remoteImages');                    // May not be needed when 'aiortc' is implemented
@@ -101,6 +108,7 @@ var remoteSettings;                     // May not be needed when 'aiortc' is im
 var remoteCapabilities;                 // May not be needed when 'aiortc' is implemented
 
 var imageSendCount = 0;
+var imageCapCount = 0;
 var imageRcvCount = 0;                  // May not be needed when 'aiortc' is implemented
 
 // Resolved constraints
@@ -215,79 +223,105 @@ function requestConfigFromRemote()
     socket.emit('settings_request');
 }
 
-function sendImage()
+function captureImage()
 /**
-  * This function is called whenever images are requested from a remote device or as part
-  * of a dedicated capture sequence. Capturing images via the ImageCapture API, repacking
-  * them, and sending them across the RTCDataChannel is all combined into this function.
-  * 
-  * The RTCDataChannel should be an established part of the RTCPeerConnection in order to
-  * successfully transmit image data across the connection. Note that these images are
-  * intentionally not compressed or sent via other methods to preserve all of the image
-  * data.
+  * NOTE: SPECIAL FUNCTION REQUESTED BY FLORIAN W. FOR FREE-HAND DEFLECTOMETRY MEASUREMENTS!
   */
 {
     localImageCapture.takePhoto(localPhotoSettings).then(imgBlob =>
     {
-        socket.emit('photo_dimensions', localPhotoSettings.imageWidth, localPhotoSettings.imageHeight);
-
         // Generate an image from the blob
         var tempImage = document.createElement('img');
         tempImage.src = URL.createObjectURL(imgBlob);
 
         tempImage.onload = function()
         {
-            // Local canvas for temporary storage
             var canvas = document.createElement('canvas');
             canvas.width = localPhotoSettings.imageWidth;
             canvas.height = localPhotoSettings.imageHeight;
             canvas.getContext('2d').drawImage(tempImage, 0, 0, canvas.width, canvas.height);
 
-            // Split data channel message in chunks of this byte length.
-            var bytesSent = 0;
-            var chunkLength = 64000;
-            var sendDelay = 50;
-            var intervalID = 0;
-
-            var img = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-            var len = img.data.byteLength;
-
-            if (!dataChannel)
-            {
-                handleError('ERROR: Connection has not been initiated.!');
-                return;
-            }
-            else if (dataChannel.readyState === 'closed')
-            {
-                handleError('ERROR: Connection was lost. Peer closed the connection.');
-                return;
-            }
-            
-            console.log('CLIENT: Sending a total of ' + len + ' byte(s) for image # ' + imageSendCount);
-            dataChannel.send(len);
-
-            intervalID = setInterval(function()
-            {
-                var msgStart = bytesSent;
-                var msgEnd = bytesSent + chunkLength;
-
-                if (msgEnd > len)
-                {
-                    msgEnd = len;
-                    console.log('CLIENT: Last ' + len % chunkLength + ' byte(s) in queue.');
-                    clearInterval(intervalID);
-                }
-                else 
-                {
-                    console.log('CLIENT: Sending bytes ' + msgStart + ' - ' + (msgEnd - 1));
-                }
-
-                dataChannel.send(img.data.subarray(msgStart, msgEnd));
-                bytesSent = msgEnd;
-            }, sendDelay);
+            localImgs.insertBefore(canvas, localImgs.firstChild);
         }
     })
     .catch(err => console.error('CLIENT: takePhoto() error ->', err));
+}
+
+function sendImage(index)
+// WARNING! THIS FUNCTION HAS BEEN MODIFIED TO SUPPORT FREE-HAND DEFLECTOMETRY MEASUREMENT.
+{
+    // Send image metadata via Socket.IO connection before sending the image
+    socket.emit('sequence_data', localTypeArray[index], localFreqArray[index], index);
+    socket.emit('photo_dimensions', localPhotoSettings.imageWidth, localPhotoSettings.imageHeight);
+        
+    // Split data channel message in chunks of this byte length.
+    var bytesSent = 0;
+    var chunkLength = 64000;
+    var sendDelay = 50;
+    var sendInterval = 0;
+    
+    var canvas = localImgs.getElementsByTagName('canvas')[index];
+    var img = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+    var len = img.data.byteLength;
+
+    if (!dataChannel)
+    {
+        handleError('ERROR: Connection has not been initiated.!');
+        return;
+    }
+    else if (dataChannel.readyState === 'closed')
+    {
+        handleError('ERROR: Connection was lost. Peer closed the connection.');
+        return;
+    }
+    
+    console.log('CLIENT: Sending a total of ' + len + ' byte(s) for image # ' + imageSendCount);
+    dataChannel.send(len);
+
+    sendInterval = setInterval(function()
+    {
+        var msgStart = bytesSent;
+        var msgEnd = bytesSent + chunkLength;
+        
+        if (msgEnd > len)
+        {
+            msgEnd = len;
+            console.log('CLIENT: Last ' + len % chunkLength + ' byte(s) in queue.');
+            clearInterval(sendInterval);
+        }
+        else 
+        {
+            console.log('CLIENT: Sending bytes ' + msgStart + ' - ' + (msgEnd - 1));
+        }
+
+        dataChannel.send(img.data.subarray(msgStart, msgEnd));
+        bytesSent = msgEnd;
+    }, sendDelay);
+
+    imageSendCount++;
+}
+
+function transferImageBatch()
+/**
+  * NOTE: SPECIAL FUNCTION REQUESTED BY FLORIAN W. FOR FREE-HAND MEASUREMENTS!
+  */
+{
+    imageSendCount = 0;
+    var batchLength = localImgs.getElementsByTagName('canvas').length;
+
+    batchInterval = setInterval(function()
+    {
+        if (imageSendCount <= batchLength)
+        {
+            console.log('CLIENT: Sending image ' + imageSendCount + ' of ' + batchLength + ' to host device.');
+            sendImage(imageSendCount);
+        }
+        else
+        {
+            console.log('CLIENT: Ending image batch transfer...');
+            clearInterval(batchInterval);
+        }
+    }, 10000);
 }
 
 function renderIncomingPhoto(data)
@@ -306,7 +340,6 @@ function renderIncomingPhoto(data)
     var canvas = document.createElement('canvas');
     canvas.width = remotePhotoSettings.imageWidth;
     canvas.height = remotePhotoSettings.imageHeight;
-    canvas.classList.add('remoteImages');
     remoteImgs.insertBefore(canvas, remoteImgs.firstChild);
     
     var context = canvas.getContext('2d');
@@ -523,6 +556,10 @@ function initPattern(patSwitch)
         targetFrequency = 0;
         sequenceCounter = 0;
         imageSendCount = 0;
+
+        localTypeArray = [];
+        localFreqArray = [];
+        localPhaseArray = [];
     });
 
     var patCtx;
@@ -579,15 +616,7 @@ function showPattern(type, frequency, phaseShift)
 }
 
 function cyclePattern()
-/**
-  * Once a measurement sequence is requested, this function will display a new pattern
-  * made with the current set of variables, change the variables for the next pass, and
-  * set a timer for a function that captures data (so changing the display and 
-  * capturing new data isn't simultaneous) and checks to see if the sequence is finished.
-  * 
-  * Change the integer at the end of setTimeout() to adjust how long of a delay exists
-  * between pattern changing and image data being captured.
-  */
+// WARNING! THIS FUNCTION HAS BEEN MODIFIED TO SUPPORT FREE-HAND DEFLECTOMETRY MEASUREMENT.
 {
     targetFrequency = frequencyArray[sequenceCounter];
 
@@ -597,31 +626,39 @@ function cyclePattern()
 
     setTimeout(function()
     {
-        socket.emit('sequence_data', targetType, targetFrequency, imageSendCount);
+        captureImage();
+        
+        localTypeArray.unshift(targetType);
+        localFreqArray.unshift(targetFrequency);
+        localPhaseArray.unshift(targetPhaseShift);
+        imageCapCount++;
 
-        sendImage();
-        imageSendCount++;
-
-        if (imageSendCount === 4)                               // End of capture sequence for a particular frequency
+        if (imageCapCount === 4)                               // End of capture sequence for a particular frequency
         {
-            imageSendCount = 0;
+            imageCapCount = 0;
             targetPhaseShift = 0;
 
             sequenceCounter++;
             if (sequenceCounter === frequencyArray.length)      // End of capture sequence for all frequencies in a particular type group
             {
-                if (targetType === 3)                           // End of capture sequence for all types
+                sequenceCounter = 0;
+                targetType++;
+
+                if (targetType === 2)                           // End of capture sequence for all fringe types
                 {
                     targetType = 0;
                     clearInterval(sequenceInterval);
-                    setTimeout(function() { showPattern(99, 0, 0); }, 500);
-                }
+                    setTimeout(function() { showPattern(99, 0, 0); }, 2000);
 
-                sequenceCounter = 0;
-                targetType++;
+                    console.log('TYPE : ', localTypeArray);
+                    console.log('FREQ : ', localFreqArray);
+                    console.log('PHASE : ', localPhaseArray);
+
+                    transferImageBatch();
+                }
             }
         }
-    }, 1000);
+    }, 100);
 }
 
 function generateVerticalFringePattern(context, width, height, ratio, frequency, phaseShift)
