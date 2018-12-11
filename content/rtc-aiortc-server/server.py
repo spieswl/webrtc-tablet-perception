@@ -39,6 +39,8 @@ async def javaScript(request):
     content = open(os.path.join(ROOT, 'js/main.js'), 'r').read()
     return web.Response(content_type = 'application/javascript', text = content)
 
+
+##############################  WebRTC Functions  ##############################
 async def rtc_offer(request):
     params = await request.json()
     offer = RTCSessionDescription(sdp = params['sdp'], type = params['type'])
