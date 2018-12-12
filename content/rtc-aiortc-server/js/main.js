@@ -40,6 +40,13 @@ showLinePatternButton.onclick = function()
     initPattern(4);
 }
 
+const testButton = document.querySelector('button#testButton');
+testButton.onclick = function()
+{
+    console.log('SENDING TEST');
+    socket.emit('test');
+}
+
 // WebRTC features & elements
 var peerConn;
 var dataChannel;
@@ -169,6 +176,14 @@ function exitFullScreenState()
     else if (document.mozCancelFullScreen)      { document.mozCancelFullScreen(); }
     else if (document.webkitCancelFullScreen)   { document.webkitCancelFullScreen(); }
 }
+
+///////////////////////////// SOCKET.IO FUNCTIONS //////////////////////////////
+
+var socket = io();
+
+
+
+
 
 /////////////////////////////// WEBRTC FUNCTIONS ///////////////////////////////
 
@@ -642,4 +657,80 @@ function generateCalibPattern(context, width, height)
     if (calibPixValue > 255)    { calibPixValue = 255; }
 
     return patternData;
+}
+
+///////////////////////////// MEASUREMENT SEQUENCES ////////////////////////////
+
+function cycleCalibration()
+/**
+  * This function is a variation on the measurement sequence that instead shows the
+  * calibration pattern. The calibration pattern values will update inside the
+  * generateCalibPattern() function, so all that is required is to check for when
+  * the calibration sequence is complete.
+  */
+{
+    showPattern(98, 0, 0);
+
+    setTimeout(function()
+    {
+        socket.emit('sequence_data', 98, 0, imageSendCounter);
+
+        sendImage();
+        imageSendCounter++;
+
+        if (calibPixValue === 255)      // End of capture condition for the calibration sequence.
+        {
+            imageSendCounter = 0;
+            calibPixValue = 0;
+
+            clearInterval(calibInterval);
+            setTimeout(function() { showPattern(99, 0, 0); }, 500);
+        }
+    }, 1000);
+}
+
+function cyclePattern()
+/**
+  * Once a measurement sequence is requested, this function will display a new pattern
+  * made with the current set of variables, change the variables for the next pass, and
+  * set a timer for a function that captures data (so changing the display and 
+  * capturing new data isn't simultaneous) and checks to see if the sequence is finished.
+  * 
+  * Change the integer at the end of setTimeout() to adjust how long of a delay exists
+  * between pattern changing and image data being captured.
+  */
+{
+    targetFrequency = frequencyArray[sequenceCounter];
+
+    showPattern(targetType, targetFrequency, targetPhaseShift);
+
+    targetPhaseShift += (Math.PI / 2);
+
+    setTimeout(function()
+    {
+        socket.emit('sequence_data', targetType, targetFrequency, imageSendCounter);
+
+        sendImage();
+        imageSendCounter++;
+
+        if (imageSendCounter === 4)                               // End of capture sequence for a particular frequency
+        {
+            imageSendCounter = 0;
+            targetPhaseShift = 0;
+
+            sequenceCounter++;
+            if (sequenceCounter === frequencyArray.length)      // End of capture sequence for all frequencies in a particular type group
+            {
+                if (targetType === 1)                           // End of capture sequence for all types
+                {
+                    targetType = 0;
+                    clearInterval(sequenceInterval);
+                    setTimeout(function() { showPattern(1, 0, 0); }, 500);
+                }
+
+                sequenceCounter = 0;
+                targetType++;
+            }
+        }
+    }, 1000);
 }

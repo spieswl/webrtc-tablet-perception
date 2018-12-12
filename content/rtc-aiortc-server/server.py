@@ -6,13 +6,13 @@ import os
 import ssl
 
 from aiohttp import web
+import socketio
 
 from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
 
 
-################################################################################
+##########################  Global vars & class defs  ##########################
 
-# Global variables
 ROOT = os.path.dirname(__file__)
 peerConnList = set()
 
@@ -40,7 +40,21 @@ async def javaScript(request):
     return web.Response(content_type = 'application/javascript', text = content)
 
 
+############################  Socket.IO Functions  #############################
+
+socket = socketio.AsyncServer()
+
+@socket.on('connect')
+def connect(sid, environs):
+    print('SERVER: Socket.IO connection made with client ID:', sid)
+
+@socket.on('disconnect')
+def disconnect(sid):
+    print('SERVER: Socket.IO connection lost with client ID:', sid)
+
+
 ##############################  WebRTC Functions  ##############################
+
 async def rtc_offer(request):
     params = await request.json()
     offer = RTCSessionDescription(sdp = params['sdp'], type = params['type'])
@@ -116,5 +130,7 @@ if (__name__ == '__main__'):
     rtc_app.router.add_get('/js/main.js', javaScript)
     rtc_app.router.add_post('/offer', rtc_offer)
     rtc_app.on_shutdown.append(close_PCs)
-    
+
+    socket.attach(rtc_app)
+
     web.run_app(rtc_app, port = args.port, ssl_context = ssl_context)
