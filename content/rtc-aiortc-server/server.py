@@ -4,6 +4,9 @@ import json
 import logging
 import os
 import ssl
+import time
+
+import numpy
 
 from aiohttp import web
 import socketio
@@ -15,6 +18,9 @@ from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
 
 ROOT = os.path.dirname(__file__)
 peerConnList = set()
+
+config_image_width = None
+config_image_height = None
 
 # Class / function definitions
 class VideoLoopback(VideoStreamTrack):
@@ -52,6 +58,15 @@ def connect(sid, environs):
 def disconnect(sid):
     print('SERVER: Socket.IO connection lost with client ID:', sid)
 
+@socket.on('photo_dimensions')
+def disconnect(sid, rmt_img_width, rmt_img_height):
+    global config_image_width
+    global config_image_height
+    
+    config_image_width = rmt_img_width
+    config_image_height = rmt_img_height
+    print('SERVER: Remote device is signaling the next image is captured at a resolution of %d x %d .' % (rmt_img_width, rmt_img_height))
+
 
 ##############################  WebRTC Functions  ##############################
 
@@ -64,9 +79,27 @@ async def rtc_offer(request):
     # RTC Data Channel handler
     @peerConn.on('datachannel')
     def on_datachannel(channel):
+        start_time = None
+        num_bytes = 0
+        image_data = None
+        
         @channel.on('message')
-        def message(data):
-            channel.send('pong')    # TBD - Migrate image reconstruction code over
+        def on_message(data):
+            nonlocal start_time
+            nonlocal num_bytes
+            nonlocal image_data
+
+            if (start_time == None):
+                start_time = time.time()
+
+            if (data):
+                num_bytes += len(data)
+                decoded = numpy.frombuffer(data, numpy.uint8)
+
+            if (len(data) < 64000):
+                elapsed_time = time.time() - start_time
+                start_time = None
+                print('SERVER: Received total of %d bytes in %.1f sec (%.3f Mbps).' % (num_bytes, elapsed_time, num_bytes * 8 / elapsed_time / 1000000))
 
     # ICE Connection state change handler
     @peerConn.on('iceconnectionstatechange')

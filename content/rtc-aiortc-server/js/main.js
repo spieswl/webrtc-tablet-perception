@@ -40,11 +40,10 @@ showLinePatternButton.onclick = function()
     initPattern(4);
 }
 
-const testButton = document.querySelector('button#testButton');
-testButton.onclick = function()
+const sendImageButton = document.querySelector('button#sendImage');
+sendImageButton.onclick = function()
 {
-    console.log('SENDING TEST');
-    socket.emit('test');
+    sendImage();
 }
 
 // WebRTC features & elements
@@ -60,6 +59,12 @@ var localStream;
 var localImageCapture;
 
 // Deflectometry-specific variables and elements
+var localPhotoSettings = 
+{ 
+    imageHeight:        1080,           // Resolution forced to fit the 
+    imageWidth:         1440,           // Shield tablet capabilities
+};
+
 var pattern;
 var overlay;
 var calibPixValue = 0;
@@ -177,12 +182,107 @@ function exitFullScreenState()
     else if (document.webkitCancelFullScreen)   { document.webkitCancelFullScreen(); }
 }
 
+function sendImage()
+/**
+  * This function is called whenever images are requested from a remote server or as part
+  * of a dedicated capture sequence. Capturing images via the ImageCapture API, repacking
+  * them, and sending them across the RTCDataChannel is all combined into this function.
+  * 
+  * The RTCDataChannel should be an established part of the RTCPeerConnection in order to
+  * successfully transmit image data across the connection. Note that these images are
+  * intentionally not compressed or sent via other methods to preserve all of the image
+  * data.
+  */
+{
+    localImageCapture.takePhoto(localPhotoSettings).then(imgBlob =>
+    {
+        socket.emit('photo_dimensions', localPhotoSettings.imageWidth, localPhotoSettings.imageHeight);
+
+        // Generate an image from the blob
+        var tempImage = document.createElement('img');
+        tempImage.src = URL.createObjectURL(imgBlob);
+
+        tempImage.onload = function()
+        {
+            // Local canvas for temporary storage
+            var canvas = document.createElement('canvas');
+            canvas.width = localPhotoSettings.imageWidth;
+            canvas.height = localPhotoSettings.imageHeight;
+            canvas.getContext('2d').drawImage(tempImage, 0, 0, canvas.width, canvas.height);
+
+            // Split data channel message in chunks of this byte length.
+            var bytesSent = 0;
+            var chunkLength = 64000;
+            var sendDelay = 100;
+            var intervalID = 0;
+
+            var img = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+            var len = img.data.byteLength;
+
+            if (!dataChannel)
+            {
+                handleError('CLIENT: ERROR! Connection has not been initiated.!');
+                return;
+            }
+            else if (dataChannel.readyState === 'closed')
+            {
+                handleError('ERROR: Connection was lost. Peer closed the connection.');
+                return;
+            }
+            
+            console.log('CLIENT: Sending a total of ' + len + ' byte(s) for image # ' + imageSendCounter);
+
+            intervalID = setInterval(function()
+            {
+                var msgStart = bytesSent;
+                var msgEnd = bytesSent + chunkLength;
+
+                if (msgEnd > len)
+                {
+                    msgEnd = len;
+                    console.log('CLIENT: Last ' + len % chunkLength + ' byte(s) in queue.');
+                    clearInterval(intervalID);
+                }
+                else 
+                {
+                    console.log('CLIENT: Sending bytes ' + msgStart + ' - ' + (msgEnd - 1));
+                }
+
+                dataChannel.send(img.data.subarray(msgStart, msgEnd));
+                bytesSent = msgEnd;
+            }, sendDelay);
+        }
+    })
+    .then(function()
+    {
+        imageSendCounter++;
+    })
+    .catch(err => console.error('CLIENT: takePhoto() error ->', err));
+}
+
 ///////////////////////////// SOCKET.IO FUNCTIONS //////////////////////////////
 
 var socket = io();
 
+socket.on('image_request', function()
+{
+    console.log('CLIENT: Received request to send a single image. Sending one image now...');
+    sendImage();
+});
 
+socket.on('calib_request', function()
+{
+    console.log('CLIENT: Received request to start calibration sequence. Starting calibration sequence now...');
+    imageSendCounter = 0;
+    calibInterval = setInterval(cycleCalibration, 10000);
+});
 
+socket.on('sequence_request', function()
+{
+    console.log('CLIENT: Received request to start capture sequence. Starting capture sequence now...');
+    imageSendCounter = 0;
+    sequenceInterval = setInterval(cyclePattern, 10000);
+});
 
 
 /////////////////////////////// WEBRTC FUNCTIONS ///////////////////////////////
@@ -281,9 +381,6 @@ function initPattern(patSwitch)
   * patSwitch allows the calling entity to decide what kind of pattern is to be displayed
   * when the full-screen canvas element is initialized. Regardless of pattern being
   * displayed, calibration or measurement sequences can be called at any time.
-  * 
-  * This and showPattern() definitely have some overlap that can be refactored into something
-  * more modular and clean.
   */
 {
     // Overlay setup
@@ -316,26 +413,10 @@ function initPattern(patSwitch)
     });
 
     // Selection of pattern to display
-    if (patSwitch === 1)
-    {
-        // Display a black pattern
-        showPattern(1, 0, 0);
-    }
-    else if (patSwitch === 2)
-    {
-        // Display a vertical fringe pattern, locked to 10 cycles
-        showPattern(2, 10, 0);
-    }
-    else if (patSwitch === 4)
-    {
-        // Display a vertical line pattern, with 2 lines shifted some amount
-        showPattern(4, 2, Math.PI);
-    }
-    else
-    {
-        // Display a white pattern
-        showPattern(0, 0, 0);
-    }
+    if      (patSwitch === 1)   { showPattern(1, 0, 0); }           // Display a black pattern
+    else if (patSwitch === 2)   { showPattern(2, 10, 0); }          // Display a vertical fringe pattern, locked to 10 cycles
+    else if (patSwitch === 4)   { showPattern(4, 2, Math.PI); }     // Display a vertical line pattern, with 2 lines shifted some amount
+    else                        { showPattern(0, 0, 0); }           // Display a white pattern
     
     // Posting the pattern to the overlay
     overlay.appendChild(pattern);
@@ -684,7 +765,7 @@ function cycleCalibration()
             calibPixValue = 0;
 
             clearInterval(calibInterval);
-            setTimeout(function() { showPattern(99, 0, 0); }, 500);
+            setTimeout(function() { showPattern(1, 0, 0); }, 500);
         }
     }, 1000);
 }

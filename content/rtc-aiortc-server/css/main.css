@@ -41,6 +41,10 @@ button[disabled]:hover {
     background-color: #f15b15;
 }
 
+button.option {
+    background-color: #407bfa;
+}
+
 div.output {
     background-color: #eee;
     display: inline-block;
