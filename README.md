@@ -14,8 +14,6 @@ A quick overview of what we are shooting for with some of these technologies is 
 
 `aiortc-server` requires **[Python 3.x](https://www.python.org/downloads/)** and some additional packages to function properly. After installing Python (including **pip**), execute the following from the command line:
 
-.. code-block:: console
-
     $ pip install aiohttp aiortc opencv-python
 
 The `webrtc-perception` Python server module leverages **aiohttp** and **aiortc** to handle asynchronous I/O and WebRTC API access. The server also makes use of **opencv-python** data structures and routines to perform meaningful image processing tasks.
