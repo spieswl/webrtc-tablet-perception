@@ -7,6 +7,7 @@ import ssl
 import time
 
 import numpy
+import cv2
 
 from aiohttp import web
 import socketio
@@ -21,6 +22,8 @@ peerConnList = set()
 
 config_image_width = None
 config_image_height = None
+
+image_data = numpy.array([], numpy.uint8)
 
 # Class / function definitions
 class VideoLoopback(VideoStreamTrack):
@@ -59,13 +62,13 @@ def disconnect(sid):
     print('SERVER: Socket.IO connection lost with client ID:', sid)
 
 @socket.on('photo_dimensions')
-def disconnect(sid, rmt_img_width, rmt_img_height):
+def dimensions(sid, rmt_img_width, rmt_img_height):
     global config_image_width
     global config_image_height
     
     config_image_width = rmt_img_width
     config_image_height = rmt_img_height
-    print('SERVER: Remote device is signaling the next image is captured at a resolution of %d x %d .' % (rmt_img_width, rmt_img_height))
+    print('SERVER: Remote device is signaling the next image is captured at a resolution of %d x %d .' % (config_image_width, config_image_height))
 
 
 ##############################  WebRTC Functions  ##############################
@@ -81,13 +84,12 @@ async def rtc_offer(request):
     def on_datachannel(channel):
         start_time = None
         num_bytes = 0
-        image_data = None
         
         @channel.on('message')
         def on_message(data):
+            global image_data
             nonlocal start_time
             nonlocal num_bytes
-            nonlocal image_data
 
             if (start_time == None):
                 start_time = time.time()
@@ -95,11 +97,17 @@ async def rtc_offer(request):
             if (data):
                 num_bytes += len(data)
                 decoded = numpy.frombuffer(data, numpy.uint8)
+                image_data = numpy.append(image, decoded)
 
             if (len(data) < 64000):
                 elapsed_time = time.time() - start_time
                 start_time = None
                 print('SERVER: Received total of %d bytes in %.1f sec (%.3f Mbps).' % (num_bytes, elapsed_time, num_bytes * 8 / elapsed_time / 1000000))
+                
+                # Save image off to disk and reset image_data container
+                save_image_CV2(image_data, config_image_width, config_image_height)
+                image_data = numpy.array([], numpy.uint8)
+                
 
     # ICE Connection state change handler
     @peerConn.on('iceconnectionstatechange')
@@ -138,6 +146,14 @@ async def close_PCs(app):
     await asyncio.gather(*closed)
     peerConnList.clear()
 
+##########################  Image Handler Functions  ###########################
+
+def save_image_CV2(image_data, width, height):
+    byte_width = width * 4
+    byte_height = height
+
+    numpy.reshape(image_data, (byte_height, byte_width))
+    cv2.imwrite("image_test.PNG", image_data)
 
 ################################################################################
 
